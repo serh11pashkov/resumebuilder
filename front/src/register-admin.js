@@ -1,13 +1,12 @@
 import axios from "axios";
 
-// Create admin registration request
 const registerAdmin = async () => {
   try {
     const response = await axios.post("http://localhost:8080/api/auth/signup", {
       username: "admin",
       email: "admin@example.com",
       password: "admin123",
-      roles: ["admin"], // This is the key - specifying admin role
+      roles: ["admin"],
     });
 
     console.log("Admin registered successfully:", response.data);
@@ -20,5 +19,4 @@ const registerAdmin = async () => {
   }
 };
 
-// Execute the registration
 registerAdmin();

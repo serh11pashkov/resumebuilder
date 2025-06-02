@@ -102,7 +102,7 @@ public class AuthController {
                     .map(GrantedAuthority::getAuthority)
                     .collect(Collectors.toList());
 
-            // Create HTTP response with token
+         
             HttpHeaders headers = new HttpHeaders();
             headers.add("Set-Cookie", "jwt=" + jwt + "; Path=/; HttpOnly; SameSite=None; Secure=false; Max-Age=86400");
 
@@ -139,7 +139,7 @@ public class AuthController {
                     .body(new MessageResponse("Error: Email is already in use!"));
         }
 
-        // Create new user's account
+
         User user = new User();
         user.setUsername(signUpRequest.getUsername());
         user.setEmail(signUpRequest.getEmail());

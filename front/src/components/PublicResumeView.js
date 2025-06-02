@@ -18,6 +18,9 @@ const PublicResumeView = () => {
   const [resume, setResume] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  console.log("PublicResumeView - URL parameter:", url);
+
   const loadPublicResume = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -26,9 +29,7 @@ const PublicResumeView = () => {
       setResume(response.data);
     } catch (error) {
       console.error("Error loading public resume:", error);
-      setError(
-        "This resume is either not available or has been set to private."
-      );
+      setError("Це резюме недоступне або встановлено як приватне.");
     } finally {
       setLoading(false);
     }
@@ -37,90 +38,119 @@ const PublicResumeView = () => {
   useEffect(() => {
     loadPublicResume();
   }, [loadPublicResume]);
-
   const handleDownloadPDF = async () => {
     try {
       const response = await ResumeService.getPublicResumePdf(url);
-      const blob = new Blob([response.data], { type: "application/pdf" });
-      const link = document.createElement("a");
-      link.href = window.URL.createObjectURL(blob);
-      link.download = `${resume.title}.pdf`;
-      link.click();
+
+      const file = new Blob([response.data], { type: "application/pdf" });
+
+      const fileURL = URL.createObjectURL(file);
+
+      const fileLink = document.createElement("a");
+      fileLink.href = fileURL;
+      fileLink.setAttribute(
+        "download",
+        `${resume.title.replace(/\s+/g, "_")}.pdf`
+      );
+      document.body.appendChild(fileLink);
+      fileLink.click();
+      document.body.removeChild(fileLink);
     } catch (error) {
       console.error("Error downloading PDF:", error);
+      alert(
+        "Помилка при завантаженні PDF. Будь ласка, спробуйте знову пізніше."
+      );
     }
   };
 
-  const renderTemplate = () => {
-    if (!resume) return null;
+  if (loading) {
+    return (
+      <Container sx={{ mt: 4, mb: 4, textAlign: "center" }}>
+        <CircularProgress />
+        <Box sx={{ mt: 2 }}>Завантаження резюме...</Box>
+      </Container>
+    );
+  }
 
-    const templateName = resume.templateName || "classic";
-    const template =
-      TEMPLATES.find((t) => t.id === templateName) || TEMPLATES[0];
-
-    const TemplateComponent = template.component;
-    return <TemplateComponent resume={resume} />;
-  };
-
-  return (
-    <Container maxWidth="lg">
-      <Box sx={{ my: 4 }}>
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            mb: 3,
-          }}
-        >
+  if (error) {
+    return (
+      <Container sx={{ mt: 4, mb: 4 }}>
+        <Alert severity="error">{error}</Alert>
+        <Box sx={{ mt: 2 }}>
           <Button
             component={Link}
             to="/public/gallery"
+            variant="outlined"
             startIcon={<ArrowBackIcon />}
           >
-            Back to Gallery
+            Повернутися до галереї
           </Button>
-
-          {resume && (
-            <Button
-              variant="contained"
-              color="primary"
-              startIcon={<PictureAsPdfIcon />}
-              onClick={handleDownloadPDF}
-            >
-              Download PDF
-            </Button>
-          )}
         </Box>
+      </Container>
+    );
+  }
 
-        {loading ? (
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              minHeight: "200px",
-            }}
+  if (!resume) {
+    return (
+      <Container sx={{ mt: 4, mb: 4 }}>
+        <Alert severity="warning">Резюме не знайдено.</Alert>
+        <Box sx={{ mt: 2 }}>
+          <Button
+            component={Link}
+            to="/public/gallery"
+            variant="outlined"
+            startIcon={<ArrowBackIcon />}
           >
-            <CircularProgress />
-          </Box>
-        ) : error ? (
-          <Alert severity="error" sx={{ my: 2 }}>
-            {error}
-          </Alert>
-        ) : (
-          <Paper
-            elevation={3}
-            sx={{
-              p: 4,
-              backgroundColor: "var(--card-bg)",
-              minHeight: "800px",
-            }}
-          >
-            {renderTemplate()}
-          </Paper>
-        )}
+            Повернутися до галереї
+          </Button>
+        </Box>
+      </Container>
+    );
+  }
+  const templateName = resume.templateName || "classic";
+  console.log("PublicResumeView - Template name:", templateName);
+  console.log(
+    "PublicResumeView - Available templates:",
+    Object.keys(TEMPLATES)
+  );
+
+  const Template = TEMPLATES[templateName] || TEMPLATES.classic;
+  console.log(
+    "PublicResumeView - Selected template:",
+    Template ? "Found" : "Not found"
+  );
+
+  return (
+    <Container maxWidth="lg" sx={{ mt: 4, mb: 8 }}>
+      <Box sx={{ mb: 3, display: "flex", justifyContent: "space-between" }}>
+        <Button
+          component={Link}
+          to="/public/gallery"
+          variant="outlined"
+          startIcon={<ArrowBackIcon />}
+        >
+          Назад до галереї
+        </Button>
+        <Button
+          variant="contained"
+          color="primary"
+          startIcon={<PictureAsPdfIcon />}
+          onClick={handleDownloadPDF}
+        >
+          Завантажити PDF
+        </Button>
       </Box>
+
+      <Paper
+        elevation={3}
+        sx={{
+          p: 4,
+          borderRadius: 2,
+          backgroundColor: "background.paper",
+        }}
+      >
+        <Template resume={resume} />
+      </Paper>
     </Container>
   );
 };

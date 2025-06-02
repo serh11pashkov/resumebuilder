@@ -8,11 +8,8 @@ import {
   Avatar,
   TextField,
   Button,
-  Divider,
   CircularProgress,
   Alert,
-  FormControlLabel,
-  Switch,
   Tabs,
   Tab,
   IconButton,
@@ -20,7 +17,6 @@ import {
 import {
   Save as SaveIcon,
   AccountCircle,
-  Edit as EditIcon,
   Visibility as VisibilityIcon,
   VisibilityOff as VisibilityOffIcon,
 } from "@mui/icons-material";
@@ -33,8 +29,6 @@ function UserSettings() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState(0);
-  const [darkModeEnabled, setDarkModeEnabled] = useState(false);
-  const [emailNotifications, setEmailNotifications] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
 
   // Form data
@@ -51,23 +45,63 @@ function UserSettings() {
     const user = AuthService.getCurrentUser();
     if (user) {
       setCurrentUser(user);
-      setFormData((prevState) => ({
-        ...prevState,
-        firstName: user.firstName || "",
-        lastName: user.lastName || "",
-        email: user.email || "",
-      }));
 
-      // Get dark mode preference from local storage
-      const isDarkMode = localStorage.getItem("darkMode") === "true";
-      setDarkModeEnabled(isDarkMode);
+      const userId = user.id || user.userId || user._id;
+      console.log("UserSettings - User object from localStorage:", user);
+      console.log("UserSettings - Using user ID:", userId);
+
+      if (!userId) {
+        console.error("UserSettings - No user ID found in user object:", user);
+        setError(
+          "Не вдалося ідентифікувати користувача. Спробуйте вийти та увійти знову."
+        );
+        setLoading(false);
+
+        if (user.username) {
+          console.log(
+            "UserSettings - Trying to use username as fallback:",
+            user.username
+          );
+
+          setFormData((prevData) => ({
+            ...prevData,
+            firstName: "",
+            lastName: "",
+            email: user.email || "",
+          }));
+        }
+        return;
+      }
+
+      UserService.getById(userId)
+        .then((response) => {
+          const data = response.data;
+          console.log("UserSettings - User profile data received:", data);
+          setFormData((prevData) => ({
+            ...prevData,
+            firstName: data.firstName || "",
+            lastName: data.lastName || "",
+            email: data.email || user.email || "",
+          }));
+          setLoading(false);
+          console.log("Successfully loaded user profile:", data);
+        })
+        .catch((err) => {
+          console.error("Error fetching user profile:", err);
+          setError(
+            "Не вдалося завантажити дані профілю: " +
+              (err.response?.status || err.message)
+          );
+          setLoading(false);
+        });
+    } else {
+      setError("Користувач не аутентифікований.");
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
-    // Reset messages when changing tabs
     setMessage("");
     setError("");
   };
@@ -80,81 +114,109 @@ function UserSettings() {
     });
   };
 
-  const handleToggleDarkMode = () => {
-    const newValue = !darkModeEnabled;
-    setDarkModeEnabled(newValue);
-    localStorage.setItem("darkMode", newValue.toString());
-    // Apply dark mode to body
-    if (newValue) {
-      document.body.classList.add("dark-mode");
-    } else {
-      document.body.classList.remove("dark-mode");
-    }
-    setMessage("Theme preference saved");
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
   };
 
-  const handleToggleNotifications = () => {
-    setEmailNotifications(!emailNotifications);
-    setMessage("Notification preferences saved");
-  };
-
-  const handleUpdateProfile = (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-    setMessage("");
-
-    if (!currentUser) {
-      setError("User not authenticated");
-      setLoading(false);
-      return;
+  const validatePasswordChange = () => {
+    if (!formData.currentPassword) {
+      setError("Будь ласка, введіть поточний пароль.");
+      return false;
     }
 
-    const userData = {
-      email: formData.email,
-      // Add other fields as needed
-    };
+    if (!formData.newPassword) {
+      setError("Будь ласка, введіть новий пароль.");
+      return false;
+    }
 
-    UserService.updateProfile(currentUser.id, userData)
-      .then((response) => {
-        setMessage("Profile updated successfully");
-
-        // Update the current user in the local storage
-        const updatedUser = UserService.updateStoredUserData({
-          email: formData.email,
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-        });
-
-        if (updatedUser) {
-          setCurrentUser(updatedUser);
-        }
-      })
-      .catch((err) => {
-        setError(
-          "Failed to update profile: " +
-            (err.response?.data?.message || err.message)
-        );
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  };
-
-  const handleUpdatePassword = (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-    setMessage("");
-
-    if (!currentUser) {
-      setError("User not authenticated");
-      setLoading(false);
-      return;
+    if (formData.newPassword.length < 6) {
+      setError("Новий пароль повинен містити не менше 6 символів.");
+      return false;
     }
 
     if (formData.newPassword !== formData.confirmPassword) {
-      setError("New passwords do not match");
+      setError("Нові паролі не співпадають.");
+      return false;
+    }
+
+    return true;
+  };
+
+  const validateProfileUpdate = () => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      setError("Будь ласка, введіть дійсну адресу електронної пошти.");
+      return false;
+    }
+    return true;
+  };
+  const handleProfileUpdate = (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setMessage("");
+    setError("");
+
+    if (!validateProfileUpdate()) {
+      setLoading(false);
+      return;
+    }
+
+    const userId = currentUser?.id || currentUser?.userId || currentUser?._id;
+    if (!userId) {
+      setError(
+        "Не вдалося визначити ідентифікатор користувача. Спробуйте вийти та увійти знову."
+      );
+      setLoading(false);
+      return;
+    }
+
+    const profileData = {
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      email: formData.email,
+    };
+
+    console.log("Updating profile for user ID:", userId);
+    UserService.updateProfile(userId, profileData)
+      .then((response) => {
+        setMessage("Профіль успішно оновлено.");
+        setLoading(false);
+
+        const user = AuthService.getCurrentUser();
+        user.email = formData.email;
+
+        if ("firstName" in user) user.firstName = formData.firstName;
+        if ("lastName" in user) user.lastName = formData.lastName;
+        localStorage.setItem("user", JSON.stringify(user));
+
+        console.log("Updated user data in localStorage:", user);
+      })
+      .catch((err) => {
+        console.error("Error updating profile:", err);
+        const resMessage =
+          (err.response && err.response.data && err.response.data.message) ||
+          err.message ||
+          err.toString();
+        setError(resMessage);
+        setLoading(false);
+      });
+  };
+  const handlePasswordChange = (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setMessage("");
+    setError("");
+
+    if (!validatePasswordChange()) {
+      setLoading(false);
+      return;
+    }
+
+    const userId = currentUser?.id || currentUser?.userId || currentUser?._id;
+    if (!userId) {
+      setError(
+        "Не вдалося визначити ідентифікатор користувача. Спробуйте вийти та увійти знову."
+      );
       setLoading(false);
       return;
     }
@@ -164,178 +226,196 @@ function UserSettings() {
       newPassword: formData.newPassword,
     };
 
-    UserService.changePassword(currentUser.id, passwordData)
+    console.log("Changing password for user ID:", userId);
+    UserService.changePassword(userId, passwordData)
       .then((response) => {
-        setMessage("Password updated successfully");
-        setFormData({
-          ...formData,
+        setMessage("Пароль успішно змінено.");
+        setFormData((prevData) => ({
+          ...prevData,
           currentPassword: "",
           newPassword: "",
           confirmPassword: "",
-        });
+        }));
+        setLoading(false);
+        console.log("Password changed successfully");
       })
       .catch((err) => {
+        console.error("Error changing password:", err);
+        const resMessage =
+          (err.response && err.response.data && err.response.data.message) ||
+          err.message ||
+          err.toString();
         setError(
-          "Failed to update password: " +
-            (err.response?.data?.message || err.message)
+          resMessage || "Неправильний поточний пароль або інша помилка."
         );
-      })
-      .finally(() => {
         setLoading(false);
       });
   };
 
   if (loading && !currentUser) {
     return (
-      <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
+      <Container sx={{ textAlign: "center", mt: 4 }}>
         <CircularProgress />
-      </Box>
+        <Typography variant="body1" sx={{ mt: 2 }}>
+          Завантаження налаштувань...
+        </Typography>
+      </Container>
     );
   }
-
   return (
-    <Container maxWidth="md" sx={{ mt: 4, mb: 8 }}>
-      <Typography variant="h4" gutterBottom>
-        Account Settings
-      </Typography>
-
-      <Paper elevation={3} sx={{ mt: 3, p: { xs: 2, md: 3 } }}>
-        <Box sx={{ mb: 3 }}>
-          <Tabs
-            value={activeTab}
-            onChange={handleTabChange}
-            variant="scrollable"
-            scrollButtons="auto"
-          >
-            <Tab label="Profile" />
-            <Tab label="Security" />
-            <Tab label="Preferences" />
+    <Container sx={{ mt: 4, mb: 8, maxWidth: "none" }}>
+      {" "}
+      <Typography
+        variant="h4"
+        component="h1"
+        gutterBottom
+        align="center"
+        sx={{ fontSize: "1.5rem" }}
+      >
+        Налаштування облікового запису
+      </Typography>{" "}
+      <Paper
+        elevation={3}
+        className="settings-form"
+        sx={{
+          p: 4,
+          borderRadius: 2,
+          mt: 3,
+          width: "600px",
+          maxWidth: "90%",
+          margin: "0 auto",
+        }}
+      >
+        <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
+          <Tabs value={activeTab} onChange={handleTabChange}>
+            <Tab label="Профіль" />
+            <Tab label="Змінити пароль" />
           </Tabs>
         </Box>
 
-        {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {error}
-          </Alert>
-        )}
-
-        {message && (
-          <Alert severity="success" sx={{ mb: 2 }}>
-            {message}
-          </Alert>
-        )}
-
         {/* Profile Tab */}
-        {activeTab === 0 && (
-          <Box component="form" onSubmit={handleUpdateProfile} noValidate>
-            <Grid container spacing={3} alignItems="flex-start">
-              <Grid
-                item
-                xs={12}
-                md={4}
+        <TabPanel value={activeTab} index={0}>
+          <Grid container spacing={3}>
+            <Grid item xs={12} sm={4} sx={{ textAlign: "center" }}>
+              {" "}
+              <Avatar
                 sx={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
+                  width: 100,
+                  height: 100,
+                  mx: "auto",
+                  bgcolor: "primary.main",
+                  fontSize: 64,
                 }}
               >
-                <Avatar
-                  sx={{
-                    width: 120,
-                    height: 120,
-                    mb: 2,
-                    bgcolor: "primary.main",
-                    fontSize: "3rem",
-                  }}
-                >
-                  {formData.firstName && formData.lastName ? (
-                    `${formData.firstName[0]}${formData.lastName[0]}`
-                  ) : (
-                    <AccountCircle fontSize="large" />
-                  )}
-                </Avatar>
-                <Typography variant="subtitle1" gutterBottom>
-                  {currentUser?.username}
-                </Typography>
-                {currentUser?.roles?.map((role, index) => (
-                  <Typography
-                    key={index}
-                    variant="body2"
-                    color="text.secondary"
-                  >
-                    {role.replace("ROLE_", "")}
-                  </Typography>
-                ))}
-              </Grid>
+                <AccountCircle fontSize="inherit" />
+              </Avatar>
+              <Typography variant="body1" sx={{ mt: 2, fontWeight: "bold" }}>
+                {currentUser?.username || "Користувач"}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {currentUser?.roles.includes("ROLE_ADMIN")
+                  ? "Адміністратор"
+                  : "Користувач"}
+              </Typography>
+            </Grid>
 
-              <Grid item xs={12} md={8}>
-                <Grid container spacing={2}>
+            <Grid item xs={12} sm={8}>
+              <Box component="form" onSubmit={handleProfileUpdate}>
+                {message && (
+                  <Alert severity="success" sx={{ mb: 2 }}>
+                    {message}
+                  </Alert>
+                )}
+                {error && (
+                  <Alert severity="error" sx={{ mb: 2 }}>
+                    {error}
+                  </Alert>
+                )}{" "}
+                <Grid container spacing={1}>
                   <Grid item xs={12} sm={6}>
                     <TextField
                       fullWidth
-                      label="First Name"
+                      label="Ім'я"
                       name="firstName"
                       value={formData.firstName}
                       onChange={handleInputChange}
-                      variant="outlined"
+                      size="small"
                     />
                   </Grid>
                   <Grid item xs={12} sm={6}>
+                    {" "}
                     <TextField
                       fullWidth
-                      label="Last Name"
+                      label="Прізвище"
                       name="lastName"
                       value={formData.lastName}
                       onChange={handleInputChange}
-                      variant="outlined"
+                      size="small"
                     />
                   </Grid>
                   <Grid item xs={12}>
+                    {" "}
                     <TextField
                       fullWidth
-                      label="Email"
+                      required
+                      label="Електронна пошта"
                       name="email"
                       type="email"
                       value={formData.email}
                       onChange={handleInputChange}
-                      variant="outlined"
+                      size="small"
                     />
                   </Grid>
-                </Grid>
-                <Box sx={{ mt: 3, textAlign: "right" }}>
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    type="submit"
-                    startIcon={<SaveIcon />}
-                    disabled={loading}
-                  >
-                    {loading ? <CircularProgress size={24} /> : "Save Changes"}
-                  </Button>
-                </Box>
-              </Grid>
+                </Grid>{" "}
+                <Button
+                  type="submit"
+                  variant="contained"
+                  color="primary"
+                  startIcon={<SaveIcon />}
+                  size="medium"
+                  disabled={loading}
+                  sx={{ mt: 3, py: 1 }}
+                >
+                  {loading ? (
+                    <CircularProgress size={24} color="inherit" />
+                  ) : (
+                    "Зберегти зміни"
+                  )}
+                </Button>
+              </Box>
             </Grid>
-          </Box>
-        )}
+          </Grid>
+        </TabPanel>
 
-        {/* Security Tab */}
-        {activeTab === 1 && (
-          <Box component="form" onSubmit={handleUpdatePassword} noValidate>
-            <Grid container spacing={3}>
+        {/* Password Tab */}
+        <TabPanel value={activeTab} index={1}>
+          <Box component="form" onSubmit={handlePasswordChange}>
+            {message && (
+              <Alert severity="success" sx={{ mb: 2 }}>
+                {message}
+              </Alert>
+            )}
+            {error && (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                {error}
+              </Alert>
+            )}{" "}
+            <Grid container spacing={1}>
               <Grid item xs={12}>
                 <TextField
                   fullWidth
-                  label="Current Password"
+                  required
+                  label="Поточний пароль"
                   name="currentPassword"
                   type={showPassword ? "text" : "password"}
                   value={formData.currentPassword}
                   onChange={handleInputChange}
-                  variant="outlined"
+                  size="small"
                   InputProps={{
                     endAdornment: (
                       <IconButton
                         aria-label="toggle password visibility"
-                        onClick={() => setShowPassword(!showPassword)}
+                        onClick={togglePasswordVisibility}
                         edge="end"
                       >
                         {showPassword ? (
@@ -348,105 +428,69 @@ function UserSettings() {
                   }}
                 />
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid item xs={12}>
+                {" "}
                 <TextField
                   fullWidth
-                  label="New Password"
+                  required
+                  label="Новий пароль"
                   name="newPassword"
                   type={showPassword ? "text" : "password"}
                   value={formData.newPassword}
                   onChange={handleInputChange}
-                  variant="outlined"
+                  size="small"
+                  helperText="Пароль має бути не менше 6 символів"
                 />
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid item xs={12}>
+                {" "}
                 <TextField
                   fullWidth
-                  label="Confirm New Password"
+                  required
+                  label="Підтвердіть новий пароль"
                   name="confirmPassword"
                   type={showPassword ? "text" : "password"}
                   value={formData.confirmPassword}
                   onChange={handleInputChange}
-                  variant="outlined"
-                  error={
-                    formData.newPassword !== formData.confirmPassword &&
-                    formData.confirmPassword !== ""
-                  }
-                  helperText={
-                    formData.newPassword !== formData.confirmPassword &&
-                    formData.confirmPassword !== ""
-                      ? "Passwords do not match"
-                      : ""
-                  }
+                  size="small"
                 />
               </Grid>
-            </Grid>
-            <Box sx={{ mt: 3, textAlign: "right" }}>
-              <Button
-                variant="contained"
-                color="primary"
-                type="submit"
-                startIcon={<SaveIcon />}
-                disabled={
-                  loading || formData.newPassword !== formData.confirmPassword
-                }
-              >
-                {loading ? <CircularProgress size={24} /> : "Update Password"}
-              </Button>
-            </Box>
+            </Grid>{" "}
+            <Button
+              type="submit"
+              variant="contained"
+              color="primary"
+              size="medium"
+              disabled={loading}
+              sx={{ mt: 3, py: 1 }}
+            >
+              {loading ? (
+                <CircularProgress size={24} color="inherit" />
+              ) : (
+                "Змінити пароль"
+              )}
+            </Button>
           </Box>
-        )}
-
-        {/* Preferences Tab */}
-        {activeTab === 2 && (
-          <Box>
-            <Grid container spacing={3}>
-              <Grid item xs={12}>
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={darkModeEnabled}
-                      onChange={handleToggleDarkMode}
-                      color="primary"
-                    />
-                  }
-                  label="Dark Mode"
-                />
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  sx={{ mt: 1 }}
-                >
-                  Switch between light and dark theme for the application
-                </Typography>
-              </Grid>
-              <Grid item xs={12}>
-                <Divider />
-              </Grid>
-              <Grid item xs={12}>
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={emailNotifications}
-                      onChange={handleToggleNotifications}
-                      color="primary"
-                    />
-                  }
-                  label="Email Notifications"
-                />
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  sx={{ mt: 1 }}
-                >
-                  Receive email notifications when your resume is viewed
-                </Typography>
-              </Grid>
-            </Grid>
-          </Box>
-        )}
+        </TabPanel>
       </Paper>
     </Container>
+  );
+}
+
+function TabPanel(props) {
+  const { children, value, index, ...other } = props;
+
+  return (
+    <div
+      role="tabpanel"
+      hidden={value !== index}
+      id={`settings-tabpanel-${index}`}
+      aria-labelledby={`settings-tab-${index}`}
+      {...other}
+      style={{ padding: "16px 0" }}
+    >
+      {value === index && <Box>{children}</Box>}
+    </div>
   );
 }
 

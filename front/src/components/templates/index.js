@@ -12,40 +12,53 @@ export {
   CreativeTemplate,
 };
 
-export const TEMPLATES = [
+// Array of templates (for selection interfaces)
+export const TEMPLATE_LIST = [
   {
     id: "classic",
-    name: "Classic",
+    name: "Класичний",
     component: ClassicTemplate,
-    description: "A traditional resume format with a professional look",
+    description: "Традиційний формат резюме з професійним виглядом",
     previewImage: "/templates/classic.png",
   },
   {
     id: "modern",
-    name: "Modern",
+    name: "Сучасний",
     component: ModernTemplate,
-    description: "A contemporary design with a sidebar for skills",
+    description: "Сучасний дизайн з бічною панеллю для навичок",
     previewImage: "/templates/modern.png",
   },
   {
     id: "minimalist",
-    name: "Minimalist",
+    name: "Мінімалістичний",
     component: MinimalistTemplate,
-    description: "A clean, minimal design focusing on content",
+    description: "Чистий, мінімалістичний дизайн з акцентом на зміст",
     previewImage: "/templates/minimalist.png",
   },
   {
     id: "professional",
-    name: "Professional",
+    name: "Професійний",
     component: ProfessionalTemplate,
-    description: "An elegant business-focused template with polished sections",
+    description:
+      "Елегантний шаблон бізнес-спрямованості з відшліфованими розділами",
     previewImage: "/templates/professional.png",
   },
   {
     id: "creative",
-    name: "Creative",
+    name: "Креативний",
     component: CreativeTemplate,
-    description: "A vibrant, modern design with custom styling and skill bars",
+    description:
+      "Яскравий, сучасний дизайн з індивідуальним стилем та смужками навичок",
     previewImage: "/templates/creative.png",
   },
 ];
+
+// Object mapping for direct template access by name
+export const TEMPLATES = {
+  classic: ClassicTemplate,
+  modern: ModernTemplate,
+  minimalist: MinimalistTemplate,
+  professional: ProfessionalTemplate,
+  creative: CreativeTemplate,
+  Basic: ClassicTemplate, // Default/fallback template
+};

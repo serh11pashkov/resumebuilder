@@ -72,12 +72,10 @@ public class ResumeService {
         Resume resume = resumeRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Resume not found"));
                 
-        // Check if user owns this resume or is admin
         if (!resume.getUser().getId().equals(userId)) {
             throw new RuntimeException("User does not own this resume");
         }
         
-        // Generate a unique URL if not already set
         if (resume.getPublicUrl() == null || resume.getPublicUrl().isEmpty()) {
             String uniqueUrl = generateUniqueUrl();
             resume.setPublicUrl(uniqueUrl);
@@ -94,7 +92,6 @@ public class ResumeService {
         Resume resume = resumeRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Resume not found"));
                 
-        // Check if user owns this resume or is admin
         if (!resume.getUser().getId().equals(userId)) {
             throw new RuntimeException("User does not own this resume");
         }
@@ -104,19 +101,16 @@ public class ResumeService {
         return dtoConverter.convertToDto(savedResume);
     }
       private String generateUniqueUrl() {
-        // Generate a random alphanumeric string
         String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
         StringBuilder sb = new StringBuilder();
         java.util.Random random = new java.util.Random();
         
-        // Generate an 8-character random string
         for (int i = 0; i < 8; i++) {
             sb.append(chars.charAt(random.nextInt(chars.length())));
         }
         
         String url = sb.toString();
         
-        // Check if URL already exists, if so generate a new one
         if (resumeRepository.findByPublicUrl(url).isPresent()) {
             return generateUniqueUrl();
         }
@@ -127,13 +121,11 @@ public class ResumeService {
     public ResumeDto createResume(ResumeDto resumeDto) {
         logger.info("Creating resume: {}", resumeDto.getTitle());
         try {
-            // Step 1: Create and save the basic resume first
             Resume resume = new Resume();
             resume.setTitle(resumeDto.getTitle());
             resume.setPersonalInfo(resumeDto.getPersonalInfo());
             resume.setSummary(resumeDto.getSummary());
             
-            // Set default values for new fields
             if (resumeDto.getIsPublic() != null) {
                 resume.setIsPublic(resumeDto.getIsPublic());
             } else {
@@ -146,27 +138,22 @@ public class ResumeService {
                 resume.setTemplateName("classic");
             }
             
-            // Only set public URL if resume is public
             if (Boolean.TRUE.equals(resume.getIsPublic()) && resumeDto.getPublicUrl() != null) {
                 resume.setPublicUrl(resumeDto.getPublicUrl());
             } else if (Boolean.TRUE.equals(resume.getIsPublic())) {
-                // Generate a URL if the resume is public
                 resume.setPublicUrl(generateUniqueUrl());
             }
             
             resume.setCreatedAt(LocalDateTime.now());
             
-            // Set User - make sure we're getting the most recent version
             User user = userRepository.findById(resumeDto.getUserId())
                     .orElseThrow(() -> new RuntimeException("User not found with id: " + resumeDto.getUserId()));
             resume.setUser(user);
             
-            // Save the resume first to get an ID
             logger.debug("Saving basic resume without collections");
             Resume savedResume = resumeRepository.saveAndFlush(resume);
             logger.debug("Resume saved with ID: {}", savedResume.getId());
             
-            // Initialize collections if they're null
             if (savedResume.getEducations() == null) {
                 savedResume.setEducations(new HashSet<>());
             }
@@ -177,7 +164,6 @@ public class ResumeService {
                 savedResume.setSkills(new HashSet<>());
             }
             
-            // Now process collections to avoid circular references
             logger.debug("Processing educations collection");
             processEducations(savedResume, resumeDto.getEducations());
             
@@ -187,11 +173,10 @@ public class ResumeService {
             logger.debug("Processing skills collection");
             processSkills(savedResume, resumeDto.getSkills());
             
-            // Save again with the collections
             logger.debug("Saving resume with collections");
             savedResume = resumeRepository.save(savedResume);
             
-            // Convert to DTO safely using our DtoConverter
+            
             logger.debug("Converting to DTO and returning");
             return dtoConverter.convertToDto(savedResume);
         } catch (Exception e) {
@@ -208,7 +193,7 @@ public class ResumeService {
                         resume.setPersonalInfo(resumeDto.getPersonalInfo());
                         resume.setSummary(resumeDto.getSummary());
                         
-                        // Update new fields
+                        
                         if (resumeDto.getIsPublic() != null) {
                             resume.setIsPublic(resumeDto.getIsPublic());
                         }
@@ -217,21 +202,19 @@ public class ResumeService {
                             resume.setTemplateName(resumeDto.getTemplateName());
                         }
                         
-                        // Only update the public URL if explicitly set
+                        
                         if (resumeDto.getPublicUrl() != null) {
                             resume.setPublicUrl(resumeDto.getPublicUrl());
                         } else if (Boolean.TRUE.equals(resume.getIsPublic()) && 
                                   (resume.getPublicUrl() == null || resume.getPublicUrl().isEmpty())) {
-                            // Generate a URL if the resume is public but doesn't have one
+                            
                             resume.setPublicUrl(generateUniqueUrl());
                         }
                         
-                        // Clear and update collections
                         resume.getEducations().clear();
                         resume.getExperiences().clear();
                         resume.getSkills().clear();
                         
-                        // Process collections
                         processEducations(resume, resumeDto.getEducations());
                         processExperiences(resume, resumeDto.getExperiences());
                         processSkills(resume, resumeDto.getSkills());
@@ -251,7 +234,6 @@ public class ResumeService {
         resumeRepository.deleteById(id);
     }
     
-    // Helper methods to process collections
     private void processEducations(Resume resume, Set<EducationDto> educationDtos) {
         if (educationDtos != null) {
             Set<Education> educations = educationDtos.stream()

@@ -54,17 +54,14 @@ public class ResumeControllerTest {
     public void setup() {
         MockitoAnnotations.openMocks(this);
         
-        // Set up Spring Security context
         when(securityContext.getAuthentication()).thenReturn(authentication);
         SecurityContextHolder.setContext(securityContext);
         when(authentication.getName()).thenReturn("testuser");
         
-        // Create test data
         testUser = new User();
         testUser.setId(1L);
         testUser.setUsername("testuser");
         
-        // Create ResumeDto
         testResumeDto = new ResumeDto();
         testResumeDto.setId(1L);
         testResumeDto.setTitle("Test Resume");
@@ -72,7 +69,6 @@ public class ResumeControllerTest {
         testResumeDto.setSummary("Experienced professional with skills in software development");
         testResumeDto.setUserId(testUser.getId());
         
-        // Add educations
         Set<EducationDto> educations = new HashSet<>();
         EducationDto education = new EducationDto();
         education.setId(1L);
@@ -83,7 +79,6 @@ public class ResumeControllerTest {
         educations.add(education);
         testResumeDto.setEducations(educations);
         
-        // Add experiences
         Set<ExperienceDto> experiences = new HashSet<>();
         ExperienceDto experience = new ExperienceDto();
         experience.setId(1L);
@@ -93,7 +88,6 @@ public class ResumeControllerTest {
         experiences.add(experience);
         testResumeDto.setExperiences(experiences);
         
-        // Add skills
         Set<SkillDto> skills = new HashSet<>();
         SkillDto skill = new SkillDto();
         skill.setId(1L);
@@ -106,16 +100,13 @@ public class ResumeControllerTest {
 
     @Test
     public void testGetAllResumes() {
-        // Arrange
         List<ResumeDto> mockResumes = new ArrayList<>();
         mockResumes.add(testResumeDto);
         
         when(resumeService.getAllResumes()).thenReturn(mockResumes);
         
-        // Act
         ResponseEntity<List<ResumeDto>> response = resumeController.getAllResumes();
         
-        // Assert
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(mockResumes, response.getBody());
         verify(resumeService, times(1)).getAllResumes();
@@ -123,17 +114,14 @@ public class ResumeControllerTest {
 
     @Test
     public void testGetResumesByUserId() {
-        // Arrange
         Long userId = 1L;
         List<ResumeDto> mockResumes = new ArrayList<>();
         mockResumes.add(testResumeDto);
         
         when(resumeService.getResumesByUserId(userId)).thenReturn(mockResumes);
         
-        // Act
         ResponseEntity<List<ResumeDto>> response = resumeController.getResumesByUserId(userId);
         
-        // Assert
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(mockResumes, response.getBody());
         verify(resumeService, times(1)).getResumesByUserId(userId);
@@ -141,14 +129,11 @@ public class ResumeControllerTest {
 
     @Test
     public void testGetResumeById() {
-        // Arrange
         Long resumeId = 1L;
         when(resumeService.getResumeById(resumeId)).thenReturn(Optional.of(testResumeDto));
         
-        // Act
         ResponseEntity<ResumeDto> response = resumeController.getResumeById(resumeId);
         
-        // Assert
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(testResumeDto, response.getBody());
         verify(resumeService, times(1)).getResumeById(resumeId);
@@ -156,28 +141,22 @@ public class ResumeControllerTest {
 
     @Test
     public void testGetResumeById_NotFound() {
-        // Arrange
         Long resumeId = 999L;
         when(resumeService.getResumeById(resumeId)).thenReturn(Optional.empty());
         
-        // Act
         ResponseEntity<ResumeDto> response = resumeController.getResumeById(resumeId);
         
-        // Assert
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
         verify(resumeService, times(1)).getResumeById(resumeId);
     }
 
     @Test
     public void testCreateResume() {
-        // Arrange
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(testUser));
         when(resumeService.createResume(any(ResumeDto.class))).thenReturn(testResumeDto);
         
-        // Act
         ResponseEntity<ResumeDto> response = resumeController.createResume(testResumeDto);
         
-        // Assert
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
         assertEquals(testResumeDto, response.getBody());
         verify(resumeService, times(1)).createResume(any(ResumeDto.class));
@@ -185,15 +164,12 @@ public class ResumeControllerTest {
 
     @Test
     public void testUpdateResume() {
-        // Arrange
         Long resumeId = 1L;
         when(resumeService.updateResume(eq(resumeId), any(ResumeDto.class)))
             .thenReturn(Optional.of(testResumeDto));
         
-        // Act
         ResponseEntity<ResumeDto> response = resumeController.updateResume(resumeId, testResumeDto);
         
-        // Assert
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(testResumeDto, response.getBody());
         verify(resumeService, times(1)).updateResume(eq(resumeId), any(ResumeDto.class));
@@ -201,29 +177,23 @@ public class ResumeControllerTest {
 
     @Test
     public void testUpdateResume_NotFound() {
-        // Arrange
         Long resumeId = 999L;
         when(resumeService.updateResume(eq(resumeId), any(ResumeDto.class)))
             .thenReturn(Optional.empty());
         
-        // Act
         ResponseEntity<ResumeDto> response = resumeController.updateResume(resumeId, testResumeDto);
         
-        // Assert
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
         verify(resumeService, times(1)).updateResume(eq(resumeId), any(ResumeDto.class));
     }
 
     @Test
     public void testDeleteResume() {
-        // Arrange
         Long resumeId = 1L;
         doNothing().when(resumeService).deleteResume(resumeId);
         
-        // Act
         ResponseEntity<Void> response = resumeController.deleteResume(resumeId);
         
-        // Assert
         assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
         verify(resumeService, times(1)).deleteResume(resumeId);
     }

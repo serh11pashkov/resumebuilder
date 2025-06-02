@@ -2,107 +2,185 @@ import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import ResumeService from "../services/resume.service";
 import AuthService from "../services/auth.service";
+import {
+  Typography,
+  Box,
+  CircularProgress,
+  Alert,
+  Container,
+  Button,
+} from "@mui/material";
 
 const ResumeList = () => {
   const [resumes, setResumes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [userId, setUserId] = useState(null);
-
-  // Initialize user ID only once on component mount
+  const [userId, setUserId] = useState(null); 
   useEffect(() => {
     const user = AuthService.getCurrentUser();
-    if (user && user.id) {
-      setUserId(user.id);
+    console.log("ResumeList - Current user:", user);
+
+    if (user) {
+      
+      const id = user.id || user.userId || user._id;
+
+      if (id) {
+        setUserId(id);
+        console.log("ResumeList - User ID set:", id);
+      } else {
+        console.error(
+          "ResumeList - User object doesn't have a valid ID property:",
+          user
+        );
+
+        
+        try {
+          const tempId = `user-${user.username || "unknown"}-${Date.now()}`;
+          console.warn("ResumeList - Creating temporary user ID:", tempId);
+
+          
+          user.id = tempId;
+          user.userId = tempId;
+          user._id = tempId;
+          localStorage.setItem("user", JSON.stringify(user));
+
+          
+          setUserId(tempId);
+
+          setError(
+            "Створено тимчасовий ідентифікатор користувача. Деякі функції можуть бути обмежені. Рекомендуємо повторно увійти в систему."
+          );
+        } catch (err) {
+          console.error("ResumeList - Failed to create temporary ID:", err);
+          setError(
+            "Користувач не має дійсного ідентифікатора. Повторно увійдіть в систему."
+          );
+          setLoading(false);
+        }
+      }
     } else {
       setLoading(false);
-      setError("User not properly authenticated");
+      setError("Недійсні облікові дані");
+      console.log("ResumeList - No valid user found");
     }
   }, []);
 
-  // Check user roles on component mount
+  
   useEffect(() => {
-    ResumeService.checkUserRoles()
-      .then((response) => {
-        console.log("User roles check result:", response.data);
-      })
-      .catch((error) => {
-        console.error("Error checking user roles:", error);
-      });
+    const style = document.createElement("style");
+    style.textContent = `
+      .resume-card {
+        background-color: var(--card-bg);
+        box-shadow: var(--shadow);
+        border-radius: 8px;
+        padding: 1.5rem;
+      }      .resume-action-btn {
+        padding: 8px 16px;
+        border-radius: 4px;
+        text-decoration: none;
+        font-size: 0.875rem;
+        color: white;
+        display: inline-block;
+        transition: background-color 0.2s;
+        border: none;
+        cursor: pointer;
+      }
+      .btn-view {
+        background-color: #4caf50;
+      }
+      .btn-view:hover {
+        background-color: #388e3c;
+      }
+      .btn-edit {
+        background-color: #2196f3;
+      }
+      .btn-edit:hover {
+        background-color: #1976d2;
+      }
+      .btn-delete {
+        background-color: #f44336;
+      }
+      .btn-delete:hover {
+        background-color: #d32f2f;
+      }
+      .btn-download {
+        background-color: #ff9800;
+      }
+      .btn-download:hover {
+        background-color: #f57c00;
+      }
+      .resume-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 1rem;
+        flex-wrap: wrap;
+      }
+      .resume-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 24px;
+        margin-top: 2rem;
+      }
+      .resume-card h3 {
+        margin-top: 0;
+        font-size: 1.25rem;
+      }
+      .resume-meta {
+        margin: 0.5rem 0;
+        font-size: 0.875rem;
+      }
+    `;
+    document.head.appendChild(style);
+
+    return () => {
+      document.head.removeChild(style);
+    };
   }, []);
-  // Only depend on userId which won't change during component lifecycle
-  const loadResumes = useCallback(() => {
-    if (!userId) return;
-
+  const fetchResumes = useCallback(() => {
     setLoading(true);
-    setError(null); // Clear previous errors
+    setError(null);
+    console.log("ResumeList - Fetching resumes for user ID:", userId);
 
-    console.log(`ResumeList: Loading resumes for user ID: ${userId}`);
+    if (!userId) {
+      console.error("ResumeList - Cannot fetch resumes: No user ID available");
+      setError("Cannot load resumes: No user ID available");
+      setLoading(false);
+      return;
+    }
 
-    // First check if user has the right permissions
-    ResumeService.checkPermissions(userId)
+    ResumeService.getByUserId(userId)
       .then((response) => {
-        console.log("Permission check result:", response.data);
-        if (response.data.accessAllowed) {
-          return ResumeService.getByUserId(userId);
-        } else {
-          throw new Error("You don't have permission to access these resumes");
-        }
-      })
-      .then((response) => {
-        console.log(
-          `ResumeList: Successfully loaded ${response.data.length} resumes`
-        );
+        console.log("ResumeList - Fetched resumes:", response.data);
         setResumes(response.data);
         setLoading(false);
       })
       .catch((error) => {
-        console.error("ResumeList: Error loading resumes:", error);
-
-        // Try to get a more detailed error message
-        let message;
-        if (error.response) {
-          // The request was made and the server responded with a status code
-          // that falls out of the range of 2xx
-          message = `Error ${error.response.status}: ${
-            error.response.data.message || error.message
-          }`;
-          console.log("Error response data:", error.response.data);
-        } else if (error.request) {
-          // The request was made but no response was received
-          message = "No response received from server. Please try again later.";
-        } else {
-          // Something happened in setting up the request that triggered an Error
-          message = error.message;
-        }
-
+        console.error("Error fetching resumes:", error);
+        const message =
+          (error.response &&
+            error.response.data &&
+            error.response.data.message) ||
+          error.message ||
+          error.toString();
         setError(message);
         setLoading(false);
-
-        // Additional debug: Check user roles
-        ResumeService.checkUserRoles()
-          .then((response) => {
-            console.log("User roles debug:", response.data);
-          })
-          .catch((roleError) => {
-            console.error("Error checking user roles:", roleError);
-          });
       });
   }, [userId]);
 
   useEffect(() => {
     if (userId) {
-      loadResumes();
+      fetchResumes();
     }
-  }, [userId, loadResumes]);
+  }, [userId, fetchResumes]);
 
-  const handleDeleteResume = (id) => {
-    if (window.confirm("Are you sure you want to delete this resume?")) {
+  const handleDelete = (id) => {
+    if (window.confirm("Ви впевнені, що хочете видалити це резюме?")) {
       ResumeService.delete(id)
         .then(() => {
-          loadResumes();
+          fetchResumes();
         })
         .catch((error) => {
+          console.error("Error deleting resume:", error);
           const message =
             (error.response &&
               error.response.data &&
@@ -113,121 +191,122 @@ const ResumeList = () => {
         });
     }
   };
-
   const handleDownloadPdf = (id, title) => {
     ResumeService.getPdf(id)
       .then((response) => {
-        // Create a blob from the PDF Stream
+        
         const file = new Blob([response.data], { type: "application/pdf" });
 
-        // Build a URL from the file
+        
         const fileURL = URL.createObjectURL(file);
 
-        // Create a link element
-        const downloadLink = document.createElement("a");
-        downloadLink.href = fileURL;
-        downloadLink.download = `${title}.pdf`;
-
-        // Append to the document
-        document.body.appendChild(downloadLink);
-
-        // Trigger click event
-        downloadLink.click();
-
-        // Clean up
-        document.body.removeChild(downloadLink);
+        
+        const fileLink = document.createElement("a");
+        fileLink.href = fileURL;
+        fileLink.setAttribute("download", `${title.replace(/\s+/g, "_")}.pdf`);
+        document.body.appendChild(fileLink);
+        fileLink.click();
+        document.body.removeChild(fileLink);
       })
       .catch((error) => {
-        const message =
-          (error.response &&
-            error.response.data &&
-            error.response.data.message) ||
-          error.message ||
-          error.toString();
-        setError(message);
+        console.error("Error downloading PDF:", error);
+        alert(
+          "Помилка при завантаженні PDF. Будь ласка, спробуйте знову пізніше."
+        );
       });
   };
 
   if (loading) {
     return (
-      <div className="centered loading-container">
-        <div className="loading-spinner"></div>
-        <p>Loading resumes...</p>
-      </div>
+      <Container maxWidth="lg" sx={{ mt: 4, mb: 4, textAlign: "center" }}>
+        <CircularProgress />
+        <Typography variant="h6" sx={{ mt: 2 }}>
+          Завантаження резюме...
+        </Typography>
+      </Container>
     );
   }
 
   if (error) {
     return (
-      <div className="error-container">
-        <h2>Error</h2>
-        <p>{error}</p>
-        <button onClick={loadResumes} className="retry-button">
-          Retry
-        </button>
-      </div>
-    );
-  }
-
-  if (resumes.length === 0) {
-    return (
-      <div className="empty-state">
-        <h2>No Resumes Found</h2>
-        <p>
-          You haven't created any resumes yet. Get started with your first
-          resume!
-        </p>
-        <Link to="/resumes/new" className="btn btn-primary">
-          Create New Resume
-        </Link>
-      </div>
+      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+        <Button variant="contained" onClick={fetchResumes}>
+          Повторити
+        </Button>
+      </Container>
     );
   }
 
   return (
-    <div className="resume-list-container">
-      <div className="resume-list-header">
-        <h1>My Resumes</h1>
-        <Link to="/resumes/new" className="btn btn-primary">
-          Create New Resume
-        </Link>
-      </div>
+    <Container maxWidth="lg" sx={{ mt: 4, mb: 8 }}>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        <Typography variant="h4" component="h1" gutterBottom>
+          Мої резюме
+        </Typography>
+        <Button
+          component={Link}
+          to="/resumes/create"
+          variant="contained"
+          color="primary"
+          sx={{ mb: 3 }}
+        >
+          Створити нове резюме
+        </Button>
+      </Box>
 
-      <div className="resume-grid">
-        {resumes.map((resume) => (
-          <div className="resume-card" key={resume.id}>
-            <div className="resume-card-content">
-              <h2>{resume.title}</h2>
-              <p className="resume-summary">
-                {resume.summary
-                  ? resume.summary.substring(0, 100) + "..."
-                  : "No summary available"}
+      {resumes.length === 0 ? (
+        <Alert severity="info" sx={{ mt: 2 }}>
+          У вас ще немає резюме. Створіть своє перше резюме!
+        </Alert>
+      ) : (
+        <div className="resume-list">
+          {resumes.map((resume) => (
+            <div key={resume.id} className="resume-card">
+              {" "}
+              <h3>{resume.title}</h3>{" "}
+              <p className="resume-meta">
+                <strong>Шаблон:</strong> {resume.templateName || "Базовий"}
               </p>
+              <div className="resume-actions">
+                <Link
+                  to={`/resumes/${resume.id}`}
+                  className="resume-action-btn btn-view"
+                >
+                  Переглянути
+                </Link>
+                <Link
+                  to={`/resumes/edit/${resume.id}`}
+                  className="resume-action-btn btn-edit"
+                >
+                  Редагувати
+                </Link>{" "}
+                <button
+                  onClick={() => handleDelete(resume.id)}
+                  className="resume-action-btn btn-delete"
+                >
+                  Видалити
+                </button>
+                <button
+                  onClick={() => handleDownloadPdf(resume.id, resume.title)}
+                  className="resume-action-btn btn-download"
+                >
+                  PDF
+                </button>
+              </div>
             </div>
-            <div className="resume-card-actions">
-              <Link to={`/resumes/${resume.id}`} className="btn btn-view">
-                View
-              </Link>
-              <Link to={`/resumes/edit/${resume.id}`} className="btn btn-edit">
-                Edit
-              </Link>
-              <button
-                onClick={() => handleDeleteResume(resume.id)}
-                className="btn btn-delete"
-              >
-                Delete
-              </button>
-              <button
-                onClick={() => handleDownloadPdf(resume.id, resume.title)}
-                className="btn btn-download"
-              >
-                PDF
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
+          ))}
+        </div>
+      )}
+    </Container>
   );
 };
 

@@ -31,26 +31,28 @@ class DebugAuthService {
   debugAuthHeader() {
     const headers = authHeader();
     console.log("Current auth headers:", headers);
-    
+
     try {
       const userStr = localStorage.getItem("user");
       if (!userStr) {
         console.warn("No user in localStorage");
         return { success: false, error: "No user in localStorage" };
       }
-      
+
       const user = JSON.parse(userStr);
       console.log("User from localStorage:", {
         ...user,
-        accessToken: user.accessToken ? `${user.accessToken.substring(0, 20)}...` : undefined,
-        token: user.token ? `${user.token.substring(0, 20)}...` : undefined
+        accessToken: user.accessToken
+          ? `${user.accessToken.substring(0, 20)}...`
+          : undefined,
+        token: user.token ? `${user.token.substring(0, 20)}...` : undefined,
       });
-      
-      return { 
-        success: true, 
+
+      return {
+        success: true,
         hasToken: !!(user.accessToken || user.token),
         username: user.username,
-        roles: user.roles
+        roles: user.roles,
       };
     } catch (error) {
       console.error("Error parsing user from localStorage:", error);

@@ -1,4 +1,3 @@
-/* Global Styles */
 :root {
   --primary-color: #2c3e50;
   --secondary-color: #3498db;
@@ -16,7 +15,6 @@
   --transition: all 0.3s ease;
 }
 
-/* Dark mode variables */
 .dark-mode {
   --primary-color: #1a1a2e;
   --secondary-color: #4361ee;
@@ -28,6 +26,9 @@
   --footer-bg: #16213e;
   --border-color: #2c2c2c;
   --shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  --success-color: #2ecc71;
+  --warning-color: #f39c12;
+  --error-color: #e74c3c;
 }
 
 body {
@@ -44,7 +45,6 @@ body {
   min-height: 100vh;
 }
 
-/* Header */
 .header {
   background-color: var(--header-bg);
   color: white;
@@ -65,6 +65,7 @@ body {
 .nav-menu {
   display: flex;
   align-items: center;
+  gap: 0.5rem;
 }
 
 .nav-link {
@@ -104,7 +105,6 @@ body {
   left: 28px;
 }
 
-/* Main Content */
 .main-content {
   flex: 1;
   padding: 2rem;
@@ -112,9 +112,9 @@ body {
   margin: 0 auto;
   width: 100%;
   box-sizing: border-box;
+  transition: var(--transition);
 }
 
-/* Footer */
 .footer {
   background-color: var(--footer-bg);
   color: white;
@@ -123,7 +123,6 @@ body {
   margin-top: auto;
 }
 
-/* Card Styles */
 .card {
   background-color: var(--card-bg);
   border-radius: 8px;
@@ -138,7 +137,6 @@ body {
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
 }
 
-/* Form Styles */
 .form-group {
   margin-bottom: 1.5rem;
 }
@@ -166,13 +164,108 @@ body {
   box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.25);
 }
 
+.dark-mode .MuiInputBase-root {
+  color: var(--text-color);
+}
+
+.dark-mode .MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline {
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.dark-mode .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline {
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.dark-mode .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
+  border-color: var(--secondary-color);
+}
+
+.dark-mode .MuiInputLabel-root {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.dark-mode .MuiInputLabel-root.Mui-focused {
+  color: var(--secondary-color);
+}
+
+.dark-mode .MuiTextField-root {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.dark-mode .MuiPaper-root {
+  background-color: var(--card-bg);
+  color: var(--text-color);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+}
+
+.dark-mode .MuiBox-root {
+  background-color: var(--card-bg);
+  color: var(--text-color);
+}
+
+.dark-mode .MuiTypography-root {
+  color: var(--text-color);
+}
+
+.dark-mode .MuiTab-root {
+  color: var(--text-color);
+}
+
+.dark-mode .MuiDivider-root {
+  background-color: var(--border-color);
+}
+
+.dark-mode .MuiAlert-standardError {
+  background-color: rgba(231, 76, 60, 0.15);
+  color: #f5b7b1;
+}
+
+.dark-mode .MuiAlert-standardSuccess {
+  background-color: rgba(39, 174, 96, 0.15);
+  color: #abebc6;
+}
+
+.dark-mode .MuiCheckbox-root {
+  color: var(--secondary-color);
+}
+
+.dark-mode .MuiButton-contained {
+  background-color: var(--secondary-color);
+  color: white !important;
+}
+
+.dark-mode .MuiButton-contained:hover {
+  background-color: #5a70ee;
+}
+
+.dark-mode a.MuiButton-contained {
+  color: var(--primary-color) !important;
+}
+
+.dark-mode a.MuiButton-outlined {
+  color: white !important;
+  border-color: white !important;
+}
+
+.dark-mode .MuiFormControlLabel-root {
+  color: var(--text-color);
+}
+
+.dark-mode .MuiLink-root {
+  color: var(--secondary-color);
+}
+
+.dark-mode .MuiLink-root:hover {
+  color: #5a70ee;
+}
+
 .form-error {
   color: var(--error-color);
   font-size: 0.85rem;
   margin-top: 0.25rem;
 }
 
-/* Button Styles */
 .btn {
   display: inline-block;
   padding: 0.75rem 1.5rem;
@@ -224,14 +317,82 @@ body {
   text-decoration: underline;
 }
 
-/* Grid Layout */
+.dark-mode .btn-primary {
+  background-color: var(--secondary-color);
+  color: white;
+}
+
+.dark-mode .btn-primary:hover {
+  background-color: #5a70ee;
+}
+
+.dark-mode .btn-secondary {
+  background-color: #2c3e50;
+  color: white;
+}
+
+.dark-mode .btn-secondary:hover {
+  background-color: #34495e;
+}
+
+.dark-mode .nav-link {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.dark-mode .nav-link:hover,
+.dark-mode .nav-link:focus {
+  color: #ffffff;
+}
+
+.dark-mode .create-resume-button {
+  background-color: var(--secondary-color);
+  color: white !important;
+}
+
+.dark-mode .MuiButton-contained {
+  color: white !important;
+}
+
+.dark-mode .MuiButton-outlined {
+  color: #f1f1f1 !important;
+  border-color: var(--secondary-color) !important;
+}
+
+.dark-mode .MuiButton-outlined:hover {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+.dark-mode .admin-dashboard table {
+  color: var(--text-color);
+  border-color: var(--border-color);
+}
+
+.dark-mode .admin-dashboard th {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.dark-mode .admin-dashboard td {
+  background-color: var(--card-bg);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.dark-mode .admin-dashboard .tabs button {
+  background-color: var(--card-bg);
+  color: var(--text-color);
+}
+
+.dark-mode .admin-dashboard .tabs button.active {
+  background-color: var(--secondary-color);
+  color: white;
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 1.5rem;
 }
 
-/* Flexbox Layouts */
 .flex {
   display: flex;
 }
@@ -252,7 +413,6 @@ body {
   align-items: center;
 }
 
-/* Spacing Utilities */
 .mt-1 {
   margin-top: 0.25rem;
 }
@@ -317,7 +477,6 @@ body {
   margin-right: 2rem;
 }
 
-/* Text Utilities */
 .text-center {
   text-align: center;
 }
@@ -355,7 +514,6 @@ body {
   font-weight: bold;
 }
 
-/* Resume specific styles */
 .resume-preview {
   padding: 2rem;
   border: 1px solid var(--border-color);
@@ -364,6 +522,148 @@ body {
   color: #333;
   box-shadow: var(--shadow);
   margin-bottom: 2rem;
+}
+
+.btn-view {
+  background-color: var(--secondary-color);
+  color: white;
+}
+
+.btn-view:hover {
+  background-color: #2980b9;
+}
+
+.btn-edit {
+  background-color: var(--success-color);
+  color: white;
+}
+
+.btn-edit:hover {
+  background-color: #218c53;
+}
+
+.btn-delete {
+  background-color: var(--error-color);
+  color: white;
+}
+
+.btn-delete:hover {
+  background-color: #a5281f;
+}
+
+.btn-download {
+  background-color: var(--warning-color);
+  color: white;
+}
+
+.btn-download:hover {
+  background-color: #d48404;
+}
+
+.dark-mode .btn-view,
+.dark-mode .btn-edit,
+.dark-mode .btn-delete,
+.dark-mode .btn-download {
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.resume-card {
+  border-radius: 8px;
+  overflow: hidden;
+  transition: var(--transition);
+  margin-bottom: 1.5rem;
+  padding: 1.5rem;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.resume-card-content {
+  margin-bottom: 1rem;
+  flex-grow: 1;
+}
+
+.resume-card-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.resume-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+.resume-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.resume-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+.dark-mode .resume-card:hover {
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+}
+
+.resume-card-content {
+  flex: 1;
+  padding: 1rem 1.5rem;
+}
+
+.resume-card-actions {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+  padding: 1rem;
+  background-color: rgba(0, 0, 0, 0.03);
+  border-top: 1px solid var(--border-color);
+}
+
+.dark-mode .resume-card-actions {
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+.public-gallery-container .MuiGrid-container {
+  margin-top: 24px !important;
+}
+
+.public-gallery-container .MuiGrid-item {
+  padding: 12px !important;
+}
+
+.public-gallery-container .MuiCard-root {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.public-gallery-container .MuiCard-root:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+.public-gallery-container .MuiCardContent-root {
+  flex-grow: 1;
+}
+
+.resume-card h2 {
+  margin-top: 0;
+  color: var(--text-color);
+}
+
+.resume-summary {
+  color: var(--text-color);
+  opacity: 0.8;
 }
 
 .section-title {
@@ -388,7 +688,6 @@ body {
   border-bottom: none;
 }
 
-/* Responsive Styles */
 @media (max-width: 768px) {
   .main-content {
     padding: 1rem;
@@ -412,4 +711,311 @@ body {
   .nav-link {
     margin-left: 0;
   }
+}
+
+.dark-mode .main-content {
+  background-color: var(--background-color);
+  color: var(--text-color);
+}
+
+.dark-mode input,
+.dark-mode textarea,
+.dark-mode select {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: var(--text-color);
+  border-color: var(--border-color);
+}
+
+.dark-mode *:focus {
+  outline-color: var(--secondary-color);
+}
+
+.dark-mode .MuiAvatar-root {
+  background-color: var(--secondary-color);
+}
+
+.dark-mode .MuiListItem-button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark-mode .MuiMenuItem-root:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark-mode .MuiMenu-paper {
+  background-color: var(--card-bg);
+  color: var(--text-color);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.dark-mode pre,
+.dark-mode code {
+  background-color: #2d2d2d;
+  color: #e6e6e6;
+  border-color: #444;
+}
+
+.dark-mode .resume-card-content span,
+.dark-mode [color="text.secondary"],
+.dark-mode .MuiTypography-colorTextSecondary {
+  color: #b0b0b0 !important;
+}
+
+.dark-mode .MuiInputAdornment-root .MuiSvgIcon-root {
+  color: #b0b0b0;
+}
+
+.dark-mode .MuiChip-root {
+  background-color: #3a3a4a;
+  color: #f1f1f1;
+}
+
+.dark-mode .MuiChip-root .MuiChip-icon,
+.dark-mode .MuiChip-root .MuiSvgIcon-root {
+  color: #b0b0b0;
+}
+
+.dark-mode .MuiButton-containedPrimary {
+  background-color: var(--secondary-color);
+  color: #ffffff;
+}
+
+.dark-mode .MuiButton-outlinedPrimary {
+  border-color: var(--secondary-color);
+  color: #ffffff;
+}
+
+.dark-mode .MuiSvgIcon-root {
+  color: #b0b0b0;
+}
+
+.dark-mode .MuiIconButton-root {
+  color: #b0b0b0;
+}
+
+.dark-mode .resume-action-btn {
+  color: white !important;
+}
+
+.dark-mode [class*="Template"] .skill-name,
+.dark-mode [class*="Template"] .MuiTypography-body2 {
+  color: #f1f1f1 !important;
+}
+
+.dark-mode .MuiInputAdornment-root .MuiIconButton-root {
+  color: #b0b0b0;
+}
+
+.dark-mode .MuiTab-root {
+  color: #b0b0b0;
+}
+
+.dark-mode .MuiTab-root.Mui-selected {
+  color: var(--secondary-color);
+}
+
+.dark-mode .visibility-icon {
+  color: #b0b0b0 !important;
+}
+
+.dark-mode .MuiInputAdornment-root .MuiSvgIcon-root {
+  color: #b0b0b0 !important;
+}
+
+.dark-mode .outline-button {
+  border-color: #4361ee !important;
+}
+
+.dark-mode .MuiInputAdornment-root .SearchIcon,
+.dark-mode .MuiInputAdornment-root svg {
+  color: #b0b0b0 !important;
+}
+
+.dark-mode .view-action-button,
+.dark-mode .action-button {
+  color: white !important;
+}
+
+.dark-mode .author-chip {
+  color: #f1f1f1 !important;
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.dark-mode .date-display,
+.dark-mode .date-display span {
+  color: #b0b0b0 !important;
+}
+
+.dark-mode .MuiFormControlLabel-label {
+  color: #f1f1f1;
+}
+
+.dark-mode .resume-template-paper .MuiTypography-root {
+  color: var(--text-color) !important;
+}
+
+.dark-mode .resume-template-paper * {
+  color: var(--text-color) !important;
+}
+
+.dark-mode .resume-template-paper [style*="backgroundColor"] {
+  color: initial !important;
+}
+
+.dark-mode .template-left-panel {
+  background-color: #2a2a35 !important;
+}
+
+.dark-mode .resume-template-paper .MuiGrid-item {
+  background-color: transparent;
+}
+
+.dark-mode [style*="height: 6px"][style*="backgroundColor: #e0e0e0"] {
+  background-color: #444 !important;
+}
+
+.dark-mode .search-icon {
+  color: #b0b0b0 !important;
+}
+
+.dark-mode .clear-search-btn {
+  color: #b0b0b0 !important;
+}
+
+.dark-mode .MuiChip-label {
+  color: #f1f1f1 !important;
+}
+
+.dark-mode .MuiChip-icon {
+  color: #b0b0b0 !important;
+}
+
+.dark-mode .resume-action-btn {
+  color: white !important;
+}
+
+.dark-mode .resume-card-content {
+  color: var(--text-color);
+}
+
+.dark-mode .resume-card-actions {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-top: 1px solid var(--border-color);
+}
+
+.dark-mode .MuiTabs-root .MuiTabs-indicator {
+  background-color: var(--secondary-color);
+}
+
+.dark-mode [style*="color: text.secondary"] {
+  color: #b0b0b0 !important;
+}
+
+.dark-mode .MuiIconButton-root .MuiSvgIcon-root {
+  color: #b0b0b0;
+}
+
+.dark-mode .MuiButton-containedPrimary {
+  color: white !important;
+}
+
+.dark-mode .MuiFormLabel-root {
+  color: #b0b0b0;
+}
+
+.dark-mode .MuiFormLabel-root.Mui-focused {
+  color: var(--secondary-color);
+}
+
+.dark-mode .skill-progress-background {
+  background-color: #444 !important;
+}
+
+.dark-mode .skill-progress-bar {
+  opacity: 0.9;
+}
+
+.dark-mode .MuiAlert-root {
+  color: #f1f1f1;
+}
+
+.dark-mode .MuiAlert-standardInfo {
+  background-color: rgba(33, 150, 243, 0.15);
+}
+
+.dark-mode .MuiAlert-standardError {
+  background-color: rgba(244, 67, 54, 0.15);
+}
+
+.dark-mode .MuiAlert-standardSuccess {
+  background-color: rgba(76, 175, 80, 0.15);
+}
+
+.dark-mode .MuiAlert-standardWarning {
+  background-color: rgba(255, 152, 0, 0.15);
+}
+
+.narrow-form {
+  width: 100%;
+  max-width: 350px;
+  margin: 0 auto;
+}
+
+.MuiPaper-root h4.MuiTypography-h4 {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.MuiContainer-root .MuiPaper-root {
+  padding: 1.5rem;
+}
+
+.login-form,
+.register-form {
+  width: 450px !important;
+  max-width: 90% !important;
+  margin: 0 auto !important;
+  box-sizing: border-box !important;
+}
+
+.settings-form {
+  width: 600px !important;
+  max-width: 90% !important;
+  margin: 0 auto !important;
+  box-sizing: border-box !important;
+}
+
+.header-account-menu .MuiPaper-root,
+.header-account-menu .MuiMenu-paper {
+  all: unset;
+  box-sizing: border-box !important;
+  display: block !important;
+}
+
+.header-account-menu .MuiMenu-list {
+  all: unset;
+  padding: 0 !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+}
+
+.header-account-menu .MuiMenuItem-root {
+  all: unset;
+  display: block !important;
+  font-family: inherit !important;
+  font-size: 0.92rem !important;
+  color: #fff !important;
+  background: none !important;
+  border-radius: 8px !important;
+  min-height: 32px !important;
+  padding: 8px 12px !important;
+  margin: 4px 6px !important;
+  cursor: pointer;
+  transition: background 0.15s;
+  text-align: left;
+}
+
+.header-account-menu .MuiMenuItem-root:hover {
+  background: #eebbc3 !important;
+  color: #232946 !important;
 }

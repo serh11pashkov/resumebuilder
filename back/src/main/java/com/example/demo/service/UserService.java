@@ -91,17 +91,23 @@ public class UserService {
             }
             return false;
         }).orElse(false);
-    }
-
-    public void deleteUser(Long id) {
+    }    public void deleteUser(Long id) {
         userRepository.deleteById(id);
     }
-
-    private UserDto convertToDto(User user) {
+    
+    public Optional<UserDto> updateProfilePhoto(Long id, String photoUrl) {
+        return userRepository.findById(id).map(user -> {
+            user.setProfilePhoto(photoUrl);
+            user.setUpdatedAt(java.time.LocalDateTime.now());
+            User savedUser = userRepository.save(user);
+            return convertToDto(savedUser);
+        });
+    }    private UserDto convertToDto(User user) {
         UserDto dto = new UserDto();
         dto.setId(user.getId());
         dto.setUsername(user.getUsername());
         dto.setEmail(user.getEmail());
+        dto.setProfilePhoto(user.getProfilePhoto());
         dto.setRoles(user.getRoles().stream()
                 .map(role -> role.getName().name())
                 .collect(Collectors.toSet()));

@@ -21,28 +21,28 @@ public class DatabaseInitializer implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) throws Exception {
-        // Clean up duplicate roles and initialize roles
+   
         cleanupAndInitRoles();
     }
 
     private void cleanupAndInitRoles() {
         try {
-            // Get all roles with the name ROLE_USER
+      
             List<Role> userRoles = roleRepository.findAll().stream()
                 .filter(role -> role.getName() == Role.ERole.ROLE_USER)
                 .toList();
             
-            // Get all roles with the name ROLE_ADMIN
+      
             List<Role> adminRoles = roleRepository.findAll().stream()
                 .filter(role -> role.getName() == Role.ERole.ROLE_ADMIN)
                 .toList();
             
             logger.info("Found {} USER roles and {} ADMIN roles", userRoles.size(), adminRoles.size());
             
-            // If we have duplicates, clean them up
+       
             if (userRoles.size() > 1) {
                 logger.info("Cleaning up duplicate USER roles");
-                // Keep the first one, delete the rest
+         
                 for (int i = 1; i < userRoles.size(); i++) {
                     roleRepository.delete(userRoles.get(i));
                 }
@@ -50,13 +50,13 @@ public class DatabaseInitializer implements CommandLineRunner {
             
             if (adminRoles.size() > 1) {
                 logger.info("Cleaning up duplicate ADMIN roles");
-                // Keep the first one, delete the rest
+          
                 for (int i = 1; i < adminRoles.size(); i++) {
                     roleRepository.delete(adminRoles.get(i));
                 }
             }
             
-            // Create roles if they don't exist
+      
             if (userRoles.isEmpty()) {
                 logger.info("Creating USER role");
                 Role userRole = new Role();

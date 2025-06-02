@@ -1,145 +1,95 @@
-import axios from "axios";
-import authHeader from "./auth-header";
 import axiosInstance from "./api";
+import axios from "axios";
 
-const API_URL = "http://localhost:8080/api/resumes";
+const API_URL = "/resumes";
 
 class ResumeService {
   getAll() {
-    const headers = authHeader();
-    return axios.get(API_URL, { headers, withCredentials: true });
+    return axiosInstance.get(API_URL);
   }
-  
+
   getById(id) {
-    const headers = authHeader();
-    return axios.get(API_URL + "/" + id, { headers, withCredentials: true });
+    return axiosInstance.get(`${API_URL}/${id}`);
   }
 
   getByUserId(userId) {
-    const headers = authHeader();
-    return axios.get(API_URL + "/user/" + userId, {
-      headers,
-      withCredentials: true,
-    });
+    return axiosInstance.get(`${API_URL}/user/${userId}`);
+  }
+  create(resumeData) {
+    return axiosInstance.post(API_URL, resumeData);
   }
 
-  create(resumeData) {
-    const headers = authHeader();
-    return axios.post(API_URL, resumeData, {
-      headers,
-      withCredentials: true,
-    });
+  update(id, resumeData) {
+    return axiosInstance.put(`${API_URL}/${id}`, resumeData);
   }
-    update(id, resumeData) {
-    const headers = authHeader();
-    return axios.put(API_URL + "/" + id, resumeData, {
-      headers,
-      withCredentials: true,
-    });
-  }
-  
+
   updateResume(id, resumeData) {
     return this.update(id, resumeData);
   }
 
   delete(id) {
-    const headers = authHeader();
-    return axios.delete(API_URL + "/" + id, {
-      headers,
-      withCredentials: true,
-    });
+    return axiosInstance.delete(`${API_URL}/${id}`);
   }
   getPdf(id) {
-    const headers = {
-      ...authHeader(),
-      Accept: "application/pdf",
-    };
-    return axios.get(API_URL + "/" + id + "/pdf", {
-      headers,
+    return axiosInstance.get(`${API_URL}/${id}/pdf`, {
+      headers: {
+        Accept: "application/pdf",
+      },
       responseType: "blob",
-      withCredentials: true,
     });
   }
 
-  // Debug methods
   testAuth() {
-    const headers = authHeader();
-    return axios.get(API_URL + "/test-auth", {
-      headers,
-      withCredentials: true,
-    });
+    return axiosInstance.get(`${API_URL}/test-auth`);
   }
+
   checkPermissions(userId) {
-    const headers = authHeader();
-    return axios.get(API_URL + "/debug/check-permissions/" + userId, {
-      headers,
-      withCredentials: true,
-    });
+    return axiosInstance.get(`${API_URL}/debug/check-permissions/${userId}`);
   }
 
   checkResumePermissions(resumeId) {
-    const headers = authHeader();
-    return axios.get(API_URL + "/debug/check-resume-permissions/" + resumeId, {
-      headers,
-      withCredentials: true,
-    });
+    return axiosInstance.get(
+      `${API_URL}/debug/check-resume-permissions/${resumeId}`
+    );
   }
-  
+
   checkUserRoles() {
-    const headers = authHeader();
-    return axios.get(API_URL + "/debug/user-roles", {
-      headers,
-      withCredentials: true,
-    });
+    return axiosInstance.get(`${API_URL}/debug/user-roles`);
   }
   // Public resume sharing methods
   makePublic(id) {
-    const headers = authHeader();
-    return axios.post(
-      API_URL + "/" + id + "/share",
-      {},
-      {
-        headers,
-        withCredentials: true,
-      }
-    );
+    return axiosInstance.post(`${API_URL}/${id}/share`, {});
   }
 
   makePrivate(id) {
-    const headers = authHeader();
-    return axios.post(
-      API_URL + "/" + id + "/unshare",
+    return axiosInstance.post(
+      `${API_URL}/${id}/unshare`,
       {},
       {
-        headers,
-        withCredentials: true,
+        validateStatus: function (status) {
+          return status >= 200 && status < 500;
+        },
       }
     );
   }
 
-  // Methods for accessing public resumes (no auth required)
   getAllPublicResumes() {
     return axios.get("http://localhost:8080/api/public/resumes");
   }
-
   getPublicResumeByUrl(url) {
-    return axios.get("http://localhost:8080/api/public/resumes/" + url);
+    console.log("Fetching public resume with URL:", url);
+    return axios.get(`http://localhost:8080/api/public/resumes/${url}`);
   }
 
   getPublicResumePdf(url) {
-    const headers = {
-      Accept: "application/pdf",
-    };
-    return axios.get(
-      "http://localhost:8080/api/public/resumes/" + url + "/pdf",
-      {
-        headers,
-        responseType: "blob",
-      }
-    );
+    return axios.get(`http://localhost:8080/api/public/resumes/${url}/pdf`, {
+      headers: {
+        Accept: "application/pdf",
+      },
+      responseType: "blob",
+    });
   }
 
-  // Template methods
   getAvailableTemplates() {
     return [
       {
@@ -167,7 +117,8 @@ class ResumeService {
         name: "Creative",
         description: "A unique design for creative professionals",
       },
-    ];  }
+    ];
+  }
 }
 
 const resumeService = new ResumeService();

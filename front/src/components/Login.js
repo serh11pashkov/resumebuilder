@@ -1,5 +1,15 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import {
+  Container,
+  Paper,
+  Typography,
+  TextField,
+  Button,
+  Box,
+  Alert,
+  CircularProgress,
+} from "@mui/material";
 import AuthService from "../services/auth.service";
 
 const Login = () => {
@@ -9,10 +19,10 @@ const Login = () => {
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    // Clear any previous error messages when component mounts
+    
     setMessage("");
 
-    // Check if user is already logged in
+    
     const currentUser = AuthService.getCurrentUser();
     if (currentUser) {
       console.log(
@@ -30,7 +40,7 @@ const Login = () => {
     setLoading(true);
 
     if (!username || !password) {
-      setMessage("Please fill in all fields.");
+      setMessage("Заповніть усі поля.");
       setLoading(false);
       return;
     }
@@ -42,7 +52,7 @@ const Login = () => {
         console.log("Login: Login successful, user data:", userData);
         console.log("Login: Redirecting to resumes page");
 
-        // Force a page reload to update authentication state across the app
+        
         window.location.href = "/resumes";
       })
       .catch((error) => {
@@ -61,66 +71,95 @@ const Login = () => {
         setMessage(resMessage);
       });
   };
-
   return (
-    <div className="card" style={{ maxWidth: "500px", margin: "0 auto" }}>
-      <h2 className="text-center mb-4">Login</h2>
-
-      <form onSubmit={handleLogin}>
-        <div className="form-group">
-          <label htmlFor="username" className="form-label">
-            Username
-          </label>
-          <input
-            type="text"
-            className="form-control"
+    <Container sx={{ mt: 4, mb: 8, maxWidth: "none" }}>
+      {" "}
+      <Paper
+        elevation={3}
+        className="login-form"
+        sx={{
+          p: 4,
+          borderRadius: 2,
+          width: "450px",
+          maxWidth: "90%",
+          margin: "0 auto",
+        }}
+      >
+        {" "}
+        <Typography
+          variant="h4"
+          align="center"
+          gutterBottom
+          sx={{ fontSize: "1.5rem" }}
+        >
+          Увійти в систему
+        </Typography>
+        <Box component="form" onSubmit={handleLogin} sx={{ mt: 1 }}>
+          {" "}
+          <TextField
+            margin="normal"
+            required
+            fullWidth
             id="username"
+            label="Ім'я користувача"
             name="username"
+            autoComplete="username"
+            autoFocus
             value={username}
             onChange={(e) => setUsername(e.target.value)}
+            variant="outlined"
+            size="small"
+            sx={{ mb: 2 }}
+          />{" "}
+          <TextField
+            margin="normal"
             required
-          />
-        </div>
-
-        <div className="form-group">
-          <label htmlFor="password" className="form-label">
-            Password
-          </label>
-          <input
-            type="password"
-            className="form-control"
-            id="password"
+            fullWidth
             name="password"
+            label="Пароль"
+            type="password"
+            id="password"
+            autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </div>
-
-        <div className="form-group">
-          <button className="btn btn-primary w-100" disabled={loading}>
-            {loading ? "Loading..." : "Login"}
-          </button>
-        </div>
-
-        {message && (
-          <div className="form-group">
-            <div className="text-error" role="alert">
+            variant="outlined"
+            size="small"
+            sx={{ mb: 3 }}
+          />{" "}
+          <Button
+            type="submit"
+            fullWidth
+            variant="contained"
+            color="primary"
+            size="medium"
+            disabled={loading}
+            sx={{ py: 1 }}
+          >
+            {loading ? (
+              <CircularProgress size={24} color="inherit" />
+            ) : (
+              "Увійти"
+            )}
+          </Button>
+          {message && (
+            <Alert severity="error" sx={{ mt: 2 }}>
               {message}
-            </div>
-          </div>
-        )}
-      </form>
-
-      <div className="mt-3 text-center">
-        <p>
-          Don't have an account?{" "}
-          <Link to="/register" className="btn-link">
-            Sign Up
-          </Link>
-        </p>
-      </div>
-    </div>
+            </Alert>
+          )}
+        </Box>{" "}
+        <Box sx={{ mt: 2, textAlign: "center" }}>
+          <Typography variant="body2">
+            Немає облікового запису?{" "}
+            <Link
+              to="/register"
+              style={{ color: "primary", textDecoration: "none" }}
+            >
+              Зареєструватися
+            </Link>
+          </Typography>
+        </Box>
+      </Paper>
+    </Container>
   );
 };
 

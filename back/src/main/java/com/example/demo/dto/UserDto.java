@@ -7,15 +7,17 @@ public class UserDto {
     private String username;
     private String email;
     private Set<String> roles;
+    private String profilePhoto;
     
     public UserDto() {
     }
     
-    public UserDto(Long id, String username, String email, Set<String> roles) {
+    public UserDto(Long id, String username, String email, Set<String> roles, String profilePhoto) {
         this.id = id;
         this.username = username;
         this.email = email;
         this.roles = roles;
+        this.profilePhoto = profilePhoto;
     }
     
     public Long getId() {
@@ -48,5 +50,13 @@ public class UserDto {
     
     public void setRoles(Set<String> roles) {
         this.roles = roles;
+    }
+    
+    public String getProfilePhoto() {
+        return profilePhoto;
+    }
+    
+    public void setProfilePhoto(String profilePhoto) {
+        this.profilePhoto = profilePhoto;
     }
 }

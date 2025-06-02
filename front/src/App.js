@@ -6,6 +6,7 @@ import {
   Navigate,
 } from "react-router-dom";
 import "./App.css";
+import "./components/menu-fixes.css";
 
 // Components
 import Login from "./components/Login";
@@ -26,6 +27,9 @@ import UserSettings from "./components/UserSettings";
 // Services
 import AuthService from "./services/auth.service";
 
+// Utilities
+import { fixUserData } from "./fixUserData";
+
 function App() {
   const [currentUser, setCurrentUser] = useState(undefined);
   const [darkMode, setDarkMode] = useState(false);
@@ -34,11 +38,10 @@ function App() {
     const user = AuthService.getCurrentUser();
     setCurrentUser(user || undefined);
   };
-
   useEffect(() => {
+    fixUserData();
     updateCurrentUser();
 
-    // Check local storage for dark mode preference
     const isDarkMode = localStorage.getItem("darkMode") === "true";
     setDarkMode(isDarkMode);
     if (isDarkMode) {
@@ -49,11 +52,10 @@ function App() {
   }, []);
 
   const toggleDarkMode = () => {
-    const newDarkModeState = !darkMode;
-    setDarkMode(newDarkModeState);
-    localStorage.setItem("darkMode", newDarkModeState.toString());
-
-    if (newDarkModeState) {
+    const newDarkMode = !darkMode;
+    setDarkMode(newDarkMode);
+    localStorage.setItem("darkMode", newDarkMode.toString());
+    if (newDarkMode) {
       document.body.classList.add("dark-mode");
     } else {
       document.body.classList.remove("dark-mode");
@@ -62,14 +64,13 @@ function App() {
 
   const logOut = () => {
     AuthService.logout();
-    setCurrentUser(undefined);
-    // Redirect to home page after logout
+    updateCurrentUser();
     window.location.href = "/";
   };
 
   return (
     <Router>
-      <div className={`app-container ${darkMode ? "dark-mode" : ""}`}>
+      <div className="app-container">
         <Header
           currentUser={currentUser}
           logOut={logOut}
@@ -81,67 +82,38 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
-
             <Route
               path="/resumes"
-              element={
-                <PrivateRoute>
-                  <ResumeList />
-                </PrivateRoute>
-              }
+              element={<PrivateRoute element={<ResumeList />} />}
             />
-
             <Route
-              path="/resumes/new"
-              element={
-                <PrivateRoute>
-                  <ResumeForm />
-                </PrivateRoute>
-              }
+              path="/resumes/create"
+              element={<PrivateRoute element={<ResumeForm />} />}
             />
-
             <Route
               path="/resumes/edit/:id"
-              element={
-                <PrivateRoute>
-                  <ResumeForm />
-                </PrivateRoute>
-              }
+              element={<PrivateRoute element={<ResumeForm />} />}
             />
-
             <Route
               path="/resumes/:id"
-              element={
-                <PrivateRoute>
-                  <ResumeView />
-                </PrivateRoute>
-              }
+              element={<PrivateRoute element={<ResumeView />} />}
             />
-
+            <Route
+              path="/settings"
+              element={<PrivateRoute element={<UserSettings />} />}
+            />
             <Route
               path="/admin"
               element={
-                <PrivateRoute requiredRole="ROLE_ADMIN">
-                  <AdminDashboard />
-                </PrivateRoute>
+                <PrivateRoute
+                  element={<AdminDashboard />}
+                  requiredRoles={["ROLE_ADMIN"]}
+                />
               }
             />
-
-            <Route
-              path="/settings"
-              element={
-                <PrivateRoute>
-                  <UserSettings />
-                </PrivateRoute>
-              }
-            />
-
-            {/* Public Routes */}
             <Route path="/public/gallery" element={<PublicGallery />} />
-            <Route path="/public/resumes/:url" element={<PublicResumeView />} />
-
-            <Route path="/404" element={<NotFound />} />
-            <Route path="*" element={<Navigate to="/404" />} />
+            <Route path="/public/resume/:url" element={<PublicResumeView />} />
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </main>
         <Footer />

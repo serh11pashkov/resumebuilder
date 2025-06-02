@@ -40,14 +40,14 @@ public class CorsConfig {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         CorsConfiguration config = new CorsConfiguration();
 
-        // Allow cookies and credentials
+  
         config.setAllowCredentials(true);
 
-        // Allow specific origins
-        config.addAllowedOrigin("http://localhost:3000"); // Frontend URL
+
+        config.addAllowedOrigin("http://localhost:3000"); 
         logger.info("Allowing origin: http://localhost:3000");
 
-        // Allow common HTTP methods
+      
         config.addAllowedMethod("GET");
         config.addAllowedMethod("POST");
         config.addAllowedMethod("PUT");
@@ -55,17 +55,17 @@ public class CorsConfig {
         config.addAllowedMethod("OPTIONS");
         logger.info("Allowed methods: GET, POST, PUT, DELETE, OPTIONS");
 
-        // Allow all headers
+   
         config.addAllowedHeader("*");
-        // Allow Authorization header in response
+  
         config.addExposedHeader("Authorization");
         logger.info("Allowing all headers and exposing Authorization header");
 
-        // Set max age for preflight requests
+    
         config.setMaxAge(3600L);
         logger.info("Setting max age: 3600 seconds");
 
-        // Add the configuration to all paths
+ 
         source.registerCorsConfiguration("/**", config);
         logger.info("Enhanced CORS configuration applied to all paths");
 

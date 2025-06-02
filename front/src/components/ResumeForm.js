@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useFormik } from "formik";
 import * as Yup from "yup";
@@ -14,7 +14,6 @@ import {
   Grid,
   MenuItem,
   IconButton,
-  Divider,
   Alert,
   Snackbar,
   CircularProgress,
@@ -26,27 +25,27 @@ import DeleteIcon from "@mui/icons-material/Delete";
 
 // Validation schema for the form
 const resumeValidationSchema = Yup.object({
-  title: Yup.string().required("Title is required"),
-  personalInfo: Yup.string().required("Personal information is required"),
-  summary: Yup.string().required("Summary is required"),
+  title: Yup.string().required("Назва обов'язкова"),
+  personalInfo: Yup.string().required("Особиста інформація обов'язкова"),
+  summary: Yup.string().required("Резюме обов'язкове"),
   educations: Yup.array().of(
     Yup.object().shape({
-      institution: Yup.string().required("Institution is required"),
-      degree: Yup.string().required("Degree is required"),
-      startDate: Yup.date().required("Start date is required"),
+      institution: Yup.string().required("Заклад освіти обов'язковий"),
+      degree: Yup.string().required("Ступінь обов'язковий"),
+      startDate: Yup.date().required("Дата початку обов'язкова"),
     })
   ),
   experiences: Yup.array().of(
     Yup.object().shape({
-      company: Yup.string().required("Company is required"),
-      position: Yup.string().required("Position is required"),
-      startDate: Yup.date().required("Start date is required"),
+      company: Yup.string().required("Назва компанії обов'язкова"),
+      position: Yup.string().required("Посада обов'язкова"),
+      startDate: Yup.date().required("Дата початку обов'язкова"),
     })
   ),
   skills: Yup.array().of(
     Yup.object().shape({
-      name: Yup.string().required("Skill name is required"),
-      proficiencyLevel: Yup.string().required("Proficiency level is required"),
+      name: Yup.string().required("Назва навички обов'язкова"),
+      proficiencyLevel: Yup.string().required("Рівень володіння обов'язковий"),
     })
   ),
 });
@@ -54,205 +53,258 @@ const resumeValidationSchema = Yup.object({
 const ResumeForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const isEditMode = !!id;
-  const currentUser = AuthService.getCurrentUser();
-  const [loading, setLoading] = useState(isEditMode);
-  const [serverError, setServerError] = useState(null);
+  const isEditMode = Boolean(id);
+  const [resume, setResume] = useState(null);
+  const [loading, setLoading] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
-  const [resumeData, setResumeData] = useState(null);  const initialValues = {
-    title: "",
-    personalInfo: "",
-    summary: "",
-    educations: [
-      {
-        institution: "",
-        degree: "",
-        fieldOfStudy: "",
-        startDate: "",
-        endDate: "",
-        description: "",
-      },
-    ],
-    experiences: [
-      {
-        company: "",
-        position: "",
-        startDate: "",
-        endDate: "",
-        isCurrent: false,
-        description: "",
-        location: "",
-      },
-    ],
-    skills: [{ name: "", proficiencyLevel: "BEGINNER" }],
-    userId: currentUser ? currentUser.id : null,
-    templateId: 1, // Default template
-    isPublic: false, // Default to private resume
-    templateName: "classic", // Default template name
-  };
-  const loadResume = useCallback(() => {
-    ResumeService.getById(id)
-      .then((response) => {
-        const data = response.data;
+  const [serverError, setServerError] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
 
-        // Format dates for form inputs if they exist
-        if (data.educations) {
-          data.educations.forEach((edu) => {
-            if (edu.startDate) edu.startDate = edu.startDate.substring(0, 10);
-            if (edu.endDate) edu.endDate = edu.endDate.substring(0, 10);
-          });
-        }
-
-        if (data.experiences) {
-          data.experiences.forEach((exp) => {
-            if (exp.startDate) exp.startDate = exp.startDate.substring(0, 10);
-            if (exp.endDate) exp.endDate = exp.endDate.substring(0, 10);
-          });
-        }
-
-        // Ensure we have at least one entry for each array type
-        if (!data.educations || data.educations.length === 0) {
-          data.educations = [initialValues.educations[0]];
-        }
-
-        if (!data.experiences || data.experiences.length === 0) {
-          data.experiences = [initialValues.experiences[0]];
-        }
-
-        if (!data.skills || data.skills.length === 0) {
-          data.skills = [initialValues.skills[0]];
-        }
-
-        setResumeData(data);
-        setLoading(false);
-      })
-      .catch((error) => {
-        const message =
-          (error.response &&
-            error.response.data &&
-            error.response.data.message) ||
-          error.message ||
-          error.toString();
-        setServerError(message);
-        setLoading(false);
-      });
-  }, [id, initialValues]);
+  
   const formik = useFormik({
-    initialValues: resumeData || initialValues,
-    enableReinitialize: true,
+    initialValues: {
+      title: "",
+      personalInfo: JSON.stringify({
+        firstName: "",
+        lastName: "",
+        email: "",
+        phone: "",
+        photo: "",
+      }),
+      summary: "",
+      educations: [
+        {
+          institution: "",
+          degree: "",
+          fieldOfStudy: "",
+          startDate: "",
+          endDate: "",
+          description: "",
+        },
+      ],
+      experiences: [
+        {
+          company: "",
+          position: "",
+          location: "",
+          startDate: "",
+          endDate: "",
+          isCurrent: false,
+          description: "",
+        },
+      ],
+      skills: [
+        {
+          name: "",
+          proficiencyLevel: "BEGINNER",
+        },
+      ],
+      
+      firstName: "",
+      lastName: "",
+      email: "",
+      phone: "",
+      photo: "",
+    },
     validationSchema: resumeValidationSchema,
-    onSubmit: (values) => {
+    validateOnChange: false, 
+    validateOnBlur: true,
+    onSubmit: async (values) => {
       setLoading(true);
-      setServerError(null); // Format the data to prevent circular references
-      const formattedValues = {
-        ...values,
-        // For new items, remove id field if it's empty
-        educations: values.educations.map((education) => ({
-          ...education,
-          id: education.id || null,
-        })),
-        experiences: values.experiences.map((experience) => ({
-          ...experience,
-          id: experience.id || null,
-        })),
-        skills: values.skills.map((skill) => ({
-          ...skill,
-          id: skill.id || null,
-        })),
-        // Ensure userId is set
-        userId: currentUser ? currentUser.id : null,
-      };
-      console.log("Formatted resume data:", formattedValues);
-      console.log("Current user:", currentUser);
-      console.log("Is edit mode:", isEditMode);
+      try {
+        
+        const personalInfoObj = {
+          firstName: values.firstName || "",
+          lastName: values.lastName || "",
+          email: values.email || "",
+          phone: values.phone || "",
+          photo: values.photo || "",
+        };
 
-      const savePromise = isEditMode
-        ? ResumeService.update(id, formattedValues)
-        : ResumeService.create(formattedValues);
+        const dataToSubmit = {
+          title: values.title,
+          personalInfo: JSON.stringify(personalInfoObj),
+          summary: values.summary,
+          educations: values.educations,
+          experiences: values.experiences,
+          skills: values.skills,
+        };
 
-      savePromise
-        .then((response) => {
-          console.log("Save successful:", response);
-          setSubmitSuccess(true);
-          setTimeout(() => {
-            navigate("/resumes");
-          }, 2000);
-        })
-        .catch((error) => {
-          console.error("Save failed:", error);
-          const message =
-            (error.response &&
-              error.response.data &&
-              error.response.data.message) ||
-            error.message ||
-            error.toString();
-          setServerError(message);
-          setLoading(false);
-        });
+        if (isEditMode) {
+          await ResumeService.update(id, dataToSubmit);
+        } else {
+          await ResumeService.create(dataToSubmit);
+        }
+
+        setSubmitSuccess(true);
+        setTimeout(() => {
+          navigate("/resumes");
+        }, 2000);
+      } catch (error) {
+        console.error("Error submitting resume:", error);
+        setServerError(
+          "Не вдалося зберегти резюме. Будь ласка, перевірте введені дані та спробуйте знову."
+        );
+      } finally {
+        setLoading(false);
+      }
     },
   });
+
+
+  useEffect(() => {
+    const user = AuthService.getCurrentUser();
+    if (user) {
+      setCurrentUser(user);
+    }
+  }, []);
+
+
   useEffect(() => {
     if (isEditMode) {
-      loadResume();
-    }
-  }, [id, isEditMode, loadResume]);
+      setLoading(true);
 
-  // Helper functions for form arrays
-  const addEducation = () => {
-    const updatedEducations = [
+      const fetchResume = async () => {
+        try {
+          const response = await ResumeService.getById(id);
+          setResume(response.data);
+
+        
+          let parsedPersonalInfo = {};
+          try {
+            if (typeof response.data.personalInfo === "string") {
+              if (response.data.personalInfo.startsWith("{")) {
+                parsedPersonalInfo = JSON.parse(response.data.personalInfo);
+              } else {
+                parsedPersonalInfo = { info: response.data.personalInfo };
+              }
+            } else if (response.data.personalInfo) {
+              parsedPersonalInfo = response.data.personalInfo;
+            }
+          } catch (error) {
+            console.error("Error parsing personal info:", error);
+            parsedPersonalInfo = {};
+          }
+
+          formik.setValues({
+            title: response.data.title || "",
+            personalInfo:
+              typeof response.data.personalInfo === "string"
+                ? response.data.personalInfo
+                : JSON.stringify(response.data.personalInfo || {}),
+            summary: response.data.summary || "",
+            educations: response.data.educations || [
+              {
+                institution: "",
+                degree: "",
+                fieldOfStudy: "",
+                startDate: "",
+                endDate: "",
+                description: "",
+              },
+            ],
+            experiences: response.data.experiences || [
+              {
+                company: "",
+                position: "",
+                location: "",
+                startDate: "",
+                endDate: "",
+                isCurrent: false,
+                description: "",
+              },
+            ],
+            skills: response.data.skills || [
+              {
+                name: "",
+                proficiencyLevel: "BEGINNER",
+              },
+            ],
+        
+            firstName: parsedPersonalInfo.firstName || "",
+            lastName: parsedPersonalInfo.lastName || "",
+            email: parsedPersonalInfo.email || "",
+            phone: parsedPersonalInfo.phone || "",
+            photo: parsedPersonalInfo.photo || "",
+          });
+        } catch (error) {
+          console.error("Error loading resume:", error);
+          setServerError(
+            "Не вдалося завантажити резюме. Будь ласка, спробуйте знову."
+          );
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      fetchResume();
+    }
+  }, [id, isEditMode]);
+
+
+  const handleAddEducation = () => {
+    const newEducation = {
+      institution: "",
+      degree: "",
+      fieldOfStudy: "",
+      startDate: "",
+      endDate: "",
+      description: "",
+    };
+    formik.setFieldValue("educations", [
       ...formik.values.educations,
-      initialValues.educations[0],
-    ];
+      newEducation,
+    ]);
+  };
+
+  const handleRemoveEducation = (index) => {
+    const updatedEducations = [...formik.values.educations];
+    updatedEducations.splice(index, 1);
     formik.setFieldValue("educations", updatedEducations);
   };
 
-  const removeEducation = (index) => {
-    if (formik.values.educations.length > 1) {
-      const updatedEducations = [...formik.values.educations];
-      updatedEducations.splice(index, 1);
-      formik.setFieldValue("educations", updatedEducations);
-    }
+  const handleAddExperience = () => {
+    const newExperience = {
+      company: "",
+      position: "",
+      location: "",
+      startDate: "",
+      endDate: "",
+      isCurrent: false,
+      description: "",
+    };
+    formik.setFieldValue("experiences", [
+      ...formik.values.experiences,
+      newExperience,
+    ]);
   };
 
-  const addExperience = () => {
-    const updatedExperiences = [
-      ...formik.values.experiences,
-      initialValues.experiences[0],
-    ];
+  const handleRemoveExperience = (index) => {
+    const updatedExperiences = [...formik.values.experiences];
+    updatedExperiences.splice(index, 1);
     formik.setFieldValue("experiences", updatedExperiences);
   };
 
-  const removeExperience = (index) => {
-    if (formik.values.experiences.length > 1) {
-      const updatedExperiences = [...formik.values.experiences];
-      updatedExperiences.splice(index, 1);
-      formik.setFieldValue("experiences", updatedExperiences);
-    }
+  const handleAddSkill = () => {
+    const newSkill = {
+      name: "",
+      proficiencyLevel: "BEGINNER",
+    };
+    formik.setFieldValue("skills", [...formik.values.skills, newSkill]);
   };
 
-  const addSkill = () => {
-    const updatedSkills = [...formik.values.skills, initialValues.skills[0]];
+  const handleRemoveSkill = (index) => {
+    const updatedSkills = [...formik.values.skills];
+    updatedSkills.splice(index, 1);
     formik.setFieldValue("skills", updatedSkills);
   };
 
-  const removeSkill = (index) => {
-    if (formik.values.skills.length > 1) {
-      const updatedSkills = [...formik.values.skills];
-      updatedSkills.splice(index, 1);
-      formik.setFieldValue("skills", updatedSkills);
-    }
-  };
-
-  // Handle experience current job checkbox
-  const handleCurrentCheckbox = (e, index) => {
+  const handleCurrentJobChange = (e, index) => {
     const updatedExperiences = [...formik.values.experiences];
     updatedExperiences[index].isCurrent = e.target.checked;
-
-    // If current job, clear end date
     if (e.target.checked) {
       updatedExperiences[index].endDate = "";
     }
-
     formik.setFieldValue("experiences", updatedExperiences);
   };
 
@@ -267,31 +319,31 @@ const ResumeForm = () => {
   return (
     <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
       <Paper sx={{ p: 3 }}>
+        {" "}
         <Typography variant="h4" gutterBottom>
-          {isEditMode ? "Edit Resume" : "Create New Resume"}
+          {isEditMode ? "Редагувати резюме" : "Створити нове резюме"}
         </Typography>
-
         {serverError && (
           <Alert severity="error" sx={{ mt: 2, mb: 2 }}>
             {serverError}
           </Alert>
-        )}
-
+        )}{" "}
         <Snackbar
           open={submitSuccess}
           autoHideDuration={2000}
           anchorOrigin={{ vertical: "top", horizontal: "center" }}
         >
-          <Alert severity="success">
-            Resume {isEditMode ? "updated" : "created"} successfully!
+          <Alert severity="success" sx={{ width: "100%" }} variant="filled">
+            Резюме {isEditMode ? "оновлено" : "створено"} успішно!
           </Alert>
         </Snackbar>
-
         <form onSubmit={formik.handleSubmit}>
-          <Grid container spacing={3}>            <Grid item xs={12}>
+          <Grid container spacing={3}>
+            <Grid item xs={12}>
+              {" "}
               <TextField
                 fullWidth
-                label="Resume Title"
+                label="Назва резюме"
                 name="title"
                 value={formik.values.title}
                 onChange={formik.handleChange}
@@ -300,54 +352,144 @@ const ResumeForm = () => {
                 helperText={formik.touched.title && formik.errors.title}
               />
             </Grid>
-            
+
+            {/* Personal Information Section */}
             <Grid item xs={12}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <FormControl component="fieldset">
-                  <Button
-                    variant={formik.values.isPublic ? "contained" : "outlined"}
-                    color={formik.values.isPublic ? "primary" : "inherit"}
-                    onClick={() => formik.setFieldValue('isPublic', !formik.values.isPublic)}
-                    startIcon={formik.values.isPublic ? <i className="fa fa-lock-open" /> : <i className="fa fa-lock" />}
+              {" "}
+              <Typography variant="h6" gutterBottom>
+                Особиста інформація
+              </Typography>
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Ім'я"
+                    name="firstName"
+                    value={formik.values.firstName || ""}
+                    onChange={formik.handleChange}
+                    onBlur={formik.handleBlur}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Прізвище"
+                    name="lastName"
+                    value={formik.values.lastName || ""}
+                    onChange={formik.handleChange}
+                    onBlur={formik.handleBlur}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Електронна пошта"
+                    name="email"
+                    value={formik.values.email || ""}
+                    onChange={formik.handleChange}
+                    onBlur={formik.handleBlur}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Телефон"
+                    name="phone"
+                    value={formik.values.phone || ""}
+                    onChange={formik.handleChange}
+                    onBlur={formik.handleBlur}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  {" "}
+                  <Typography variant="subtitle1" gutterBottom>
+                    Фото профілю (необов'язково)
+                  </Typography>
+                  <Box
+                    sx={{
+                      mb: 2,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 2,
+                    }}
                   >
-                    {formik.values.isPublic ? "Public Resume" : "Private Resume"}
-                  </Button>
-                  <FormHelperText>
-                    {formik.values.isPublic 
-                      ? "This resume will be visible in the public gallery" 
-                      : "This resume is private and only visible to you"}
-                  </FormHelperText>
-                </FormControl>
-              </Box>
+                    <Button
+                      variant="contained"
+                      component="label"
+                      color="primary"
+                      sx={{ mb: 1 }}
+                    >
+                      Завантажити зображення
+                      <input
+                        type="file"
+                        hidden
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files[0];
+                          if (file) {
+                            if (file.size > 2 * 1024 * 1024) {
+                              setServerError(
+                                "Розмір зображення повинен бути менше 2MB"
+                              );
+                              return;
+                            }
+
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              formik.setFieldValue("photo", reader.result);
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                      />
+                    </Button>{" "}
+                    <TextField
+                      fullWidth
+                      label="Або введіть URL фото"
+                      name="photo"
+                      placeholder="https://example.com/your-photo.jpg"
+                      value={formik.values.photo || ""}
+                      onChange={formik.handleChange}
+                      onBlur={formik.handleBlur}
+                    />
+                  </Box>
+                  {formik.values.photo && (
+                    <Box sx={{ mt: 2, textAlign: "center" }}>
+                      <img
+                        src={formik.values.photo}
+                        alt="Profile"
+                        style={{
+                          maxWidth: "100px",
+                          maxHeight: "100px",
+                          borderRadius: "50%",
+                          objectFit: "cover",
+                        }}
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          setServerError(
+                            "Не вдалося завантажити зображення. Будь ласка, перевірте URL."
+                          );
+                          e.target.style.display = "none";
+                        }}
+                      />
+                    </Box>
+                  )}
+                </Grid>
+              </Grid>
             </Grid>
 
+            {/* Summary Section */}
             <Grid item xs={12}>
+              {" "}
+              <Typography variant="h6" gutterBottom>
+                Резюме
+              </Typography>
               <TextField
                 fullWidth
-                label="Personal Information"
-                name="personalInfo"
                 multiline
                 rows={4}
-                value={formik.values.personalInfo}
-                onChange={formik.handleChange}
-                onBlur={formik.handleBlur}
-                error={
-                  formik.touched.personalInfo &&
-                  Boolean(formik.errors.personalInfo)
-                }
-                helperText={
-                  formik.touched.personalInfo && formik.errors.personalInfo
-                }
-              />
-            </Grid>
-
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Professional Summary"
+                label="Резюме"
                 name="summary"
-                multiline
-                rows={4}
                 value={formik.values.summary}
                 onChange={formik.handleChange}
                 onBlur={formik.handleBlur}
@@ -366,24 +508,45 @@ const ResumeForm = () => {
                   mb: 2,
                 }}
               >
-                <Typography variant="h6">Education</Typography>
+                {" "}
+                <Typography variant="h6">Освіта</Typography>
                 <Button
                   startIcon={<AddIcon />}
-                  onClick={addEducation}
+                  onClick={handleAddEducation}
                   variant="outlined"
                   size="small"
                 >
-                  Add Education
+                  Додати освіту
                 </Button>
               </Box>
 
               {formik.values.educations.map((education, index) => (
                 <Paper key={index} sx={{ p: 2, mb: 2, position: "relative" }}>
                   <Grid container spacing={2}>
+                    <Grid item xs={12}>
+                      {" "}
+                      {formik.values.educations.length > 1 && (
+                        <Box
+                          sx={{
+                            position: "absolute",
+                            top: 10,
+                            right: 10,
+                          }}
+                        >
+                          <IconButton
+                            onClick={() => handleRemoveEducation(index)}
+                            color="error"
+                            size="small"
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        </Box>
+                      )}
+                    </Grid>
                     <Grid item xs={12} sm={6}>
                       <TextField
                         fullWidth
-                        label="Institution"
+                        label="Заклад освіти"
                         name={`educations[${index}].institution`}
                         value={education.institution}
                         onChange={formik.handleChange}
@@ -403,7 +566,7 @@ const ResumeForm = () => {
                     <Grid item xs={12} sm={6}>
                       <TextField
                         fullWidth
-                        label="Degree"
+                        label="Ступінь"
                         name={`educations[${index}].degree`}
                         value={education.degree}
                         onChange={formik.handleChange}
@@ -421,23 +584,26 @@ const ResumeForm = () => {
                     <Grid item xs={12} sm={6}>
                       <TextField
                         fullWidth
-                        label="Field of Study"
+                        label="Галузь навчання"
                         name={`educations[${index}].fieldOfStudy`}
-                        value={education.fieldOfStudy}
+                        value={education.fieldOfStudy || ""}
                         onChange={formik.handleChange}
                         onBlur={formik.handleBlur}
                       />
                     </Grid>
-                    <Grid item xs={12} sm={3}>
+                    <Grid item xs={12} sm={6}>
+                      {" "}
                       <TextField
                         fullWidth
-                        label="Start Date"
-                        name={`educations[${index}].startDate`}
+                        label="Дата початку"
                         type="date"
-                        value={education.startDate}
+                        name={`educations[${index}].startDate`}
+                        value={education.startDate || ""}
                         onChange={formik.handleChange}
                         onBlur={formik.handleBlur}
-                        InputLabelProps={{ shrink: true }}
+                        InputLabelProps={{
+                          shrink: true,
+                        }}
                         error={
                           formik.touched.educations?.[index]?.startDate &&
                           Boolean(formik.errors.educations?.[index]?.startDate)
@@ -448,48 +614,39 @@ const ResumeForm = () => {
                         }
                       />
                     </Grid>
-                    <Grid item xs={12} sm={3}>
+                    <Grid item xs={12} sm={6}>
+                      {" "}
                       <TextField
                         fullWidth
-                        label="End Date"
-                        name={`educations[${index}].endDate`}
+                        label="Дата закінчення"
                         type="date"
-                        value={education.endDate}
+                        name={`educations[${index}].endDate`}
+                        value={education.endDate || ""}
                         onChange={formik.handleChange}
                         onBlur={formik.handleBlur}
-                        InputLabelProps={{ shrink: true }}
+                        InputLabelProps={{
+                          shrink: true,
+                        }}
                       />
                     </Grid>
                     <Grid item xs={12}>
                       <TextField
                         fullWidth
-                        label="Description"
-                        name={`educations[${index}].description`}
+                        label="Опис"
                         multiline
                         rows={2}
-                        value={education.description}
+                        name={`educations[${index}].description`}
+                        value={education.description || ""}
                         onChange={formik.handleChange}
                         onBlur={formik.handleBlur}
                       />
                     </Grid>
                   </Grid>
-
-                  {formik.values.educations.length > 1 && (
-                    <IconButton
-                      aria-label="delete"
-                      onClick={() => removeEducation(index)}
-                      sx={{ position: "absolute", top: 10, right: 10 }}
-                      color="error"
-                      size="small"
-                    >
-                      <DeleteIcon />
-                    </IconButton>
-                  )}
                 </Paper>
               ))}
             </Grid>
 
-            {/* Experience Section */}
+            {}
             <Grid item xs={12}>
               <Box
                 sx={{
@@ -499,24 +656,45 @@ const ResumeForm = () => {
                   mb: 2,
                 }}
               >
-                <Typography variant="h6">Experience</Typography>
+                {" "}
+                <Typography variant="h6">Досвід роботи</Typography>
                 <Button
                   startIcon={<AddIcon />}
-                  onClick={addExperience}
+                  onClick={handleAddExperience}
                   variant="outlined"
                   size="small"
                 >
-                  Add Experience
+                  Додати досвід роботи
                 </Button>
               </Box>
 
               {formik.values.experiences.map((experience, index) => (
                 <Paper key={index} sx={{ p: 2, mb: 2, position: "relative" }}>
                   <Grid container spacing={2}>
+                    <Grid item xs={12}>
+                      {" "}
+                      {formik.values.experiences.length > 1 && (
+                        <Box
+                          sx={{
+                            position: "absolute",
+                            top: 10,
+                            right: 10,
+                          }}
+                        >
+                          <IconButton
+                            onClick={() => handleRemoveExperience(index)}
+                            color="error"
+                            size="small"
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        </Box>
+                      )}
+                    </Grid>
                     <Grid item xs={12} sm={6}>
                       <TextField
                         fullWidth
-                        label="Company"
+                        label="Компанія"
                         name={`experiences[${index}].company`}
                         value={experience.company}
                         onChange={formik.handleChange}
@@ -534,7 +712,7 @@ const ResumeForm = () => {
                     <Grid item xs={12} sm={6}>
                       <TextField
                         fullWidth
-                        label="Position"
+                        label="Посада"
                         name={`experiences[${index}].position`}
                         value={experience.position}
                         onChange={formik.handleChange}
@@ -552,23 +730,26 @@ const ResumeForm = () => {
                     <Grid item xs={12} sm={6}>
                       <TextField
                         fullWidth
-                        label="Location"
+                        label="Місце розташування"
                         name={`experiences[${index}].location`}
-                        value={experience.location}
+                        value={experience.location || ""}
                         onChange={formik.handleChange}
                         onBlur={formik.handleBlur}
                       />
                     </Grid>
-                    <Grid item xs={12} sm={3}>
+                    <Grid item xs={12} sm={6}>
+                      {" "}
                       <TextField
                         fullWidth
-                        label="Start Date"
-                        name={`experiences[${index}].startDate`}
+                        label="Дата початку"
                         type="date"
-                        value={experience.startDate}
+                        name={`experiences[${index}].startDate`}
+                        value={experience.startDate || ""}
                         onChange={formik.handleChange}
                         onBlur={formik.handleBlur}
-                        InputLabelProps={{ shrink: true }}
+                        InputLabelProps={{
+                          shrink: true,
+                        }}
                         error={
                           formik.touched.experiences?.[index]?.startDate &&
                           Boolean(formik.errors.experiences?.[index]?.startDate)
@@ -579,58 +760,53 @@ const ResumeForm = () => {
                         }
                       />
                     </Grid>
-                    <Grid item xs={12} sm={3}>
-                      <FormControl fullWidth>
-                        <TextField
-                          fullWidth
-                          label="End Date"
-                          name={`experiences[${index}].endDate`}
-                          type="date"
-                          value={experience.endDate}
-                          onChange={formik.handleChange}
-                          onBlur={formik.handleBlur}
-                          InputLabelProps={{ shrink: true }}
-                          disabled={experience.isCurrent}
-                        />
-                        <FormHelperText>
-                          <label>
-                            <input
-                              type="checkbox"
-                              name={`experiences[${index}].isCurrent`}
-                              checked={experience.isCurrent}
-                              onChange={(e) => handleCurrentCheckbox(e, index)}
-                              style={{ marginRight: "5px" }}
-                            />
-                            Current Position
+                    <Grid item xs={12} sm={6}>
+                      <FormControl component="fieldset">
+                        <Box sx={{ display: "flex", alignItems: "center" }}>
+                          <input
+                            type="checkbox"
+                            name={`experiences[${index}].isCurrent`}
+                            checked={experience.isCurrent || false}
+                            onChange={(e) => handleCurrentJobChange(e, index)}
+                            id={`current-job-${index}`}
+                            style={{ marginRight: "8px" }}
+                          />{" "}
+                          <label htmlFor={`current-job-${index}`}>
+                            Поточна робота
                           </label>
-                        </FormHelperText>
+                        </Box>
                       </FormControl>
                     </Grid>
+                    {!experience.isCurrent && (
+                      <Grid item xs={12} sm={6}>
+                        {" "}
+                        <TextField
+                          fullWidth
+                          label="Дата закінчення"
+                          type="date"
+                          name={`experiences[${index}].endDate`}
+                          value={experience.endDate || ""}
+                          onChange={formik.handleChange}
+                          onBlur={formik.handleBlur}
+                          InputLabelProps={{
+                            shrink: true,
+                          }}
+                        />
+                      </Grid>
+                    )}
                     <Grid item xs={12}>
                       <TextField
                         fullWidth
-                        label="Description"
-                        name={`experiences[${index}].description`}
+                        label="Опис"
                         multiline
                         rows={3}
-                        value={experience.description}
+                        name={`experiences[${index}].description`}
+                        value={experience.description || ""}
                         onChange={formik.handleChange}
                         onBlur={formik.handleBlur}
                       />
                     </Grid>
                   </Grid>
-
-                  {formik.values.experiences.length > 1 && (
-                    <IconButton
-                      aria-label="delete"
-                      onClick={() => removeExperience(index)}
-                      sx={{ position: "absolute", top: 10, right: 10 }}
-                      color="error"
-                      size="small"
-                    >
-                      <DeleteIcon />
-                    </IconButton>
-                  )}
                 </Paper>
               ))}
             </Grid>
@@ -645,71 +821,108 @@ const ResumeForm = () => {
                   mb: 2,
                 }}
               >
-                <Typography variant="h6">Skills</Typography>
+                {" "}
+                <Typography variant="h6">Навички</Typography>
                 <Button
                   startIcon={<AddIcon />}
-                  onClick={addSkill}
+                  onClick={handleAddSkill}
                   variant="outlined"
                   size="small"
                 >
-                  Add Skill
+                  Додати навичку
                 </Button>
               </Box>
 
-              {formik.values.skills.map((skill, index) => (
-                <Paper key={index} sx={{ p: 2, mb: 2, position: "relative" }}>
-                  <Grid container spacing={2}>
-                    <Grid item xs={12} sm={6}>
-                      <TextField
-                        fullWidth
-                        label="Skill Name"
-                        name={`skills[${index}].name`}
-                        value={skill.name}
-                        onChange={formik.handleChange}
-                        onBlur={formik.handleBlur}
-                        error={
-                          formik.touched.skills?.[index]?.name &&
-                          Boolean(formik.errors.skills?.[index]?.name)
-                        }
-                        helperText={
-                          formik.touched.skills?.[index]?.name &&
-                          formik.errors.skills?.[index]?.name
-                        }
-                      />
-                    </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <TextField
-                        fullWidth
-                        select
-                        label="Proficiency Level"
-                        name={`skills[${index}].proficiencyLevel`}
-                        value={skill.proficiencyLevel}
-                        onChange={formik.handleChange}
-                        onBlur={formik.handleBlur}
-                      >
-                        <MenuItem value="BEGINNER">Beginner</MenuItem>
-                        <MenuItem value="INTERMEDIATE">Intermediate</MenuItem>
-                        <MenuItem value="ADVANCED">Advanced</MenuItem>
-                        <MenuItem value="EXPERT">Expert</MenuItem>
-                      </TextField>
-                    </Grid>
+              <Grid container spacing={2}>
+                {formik.values.skills.map((skill, index) => (
+                  <Grid item xs={12} md={6} key={index}>
+                    <Paper sx={{ p: 2, position: "relative" }}>
+                      <Grid container spacing={2}>
+                        <Grid item xs={12}>
+                          {" "}
+                          {formik.values.skills.length > 1 && (
+                            <Box
+                              sx={{
+                                position: "absolute",
+                                top: 10,
+                                right: 10,
+                              }}
+                            >
+                              <IconButton
+                                onClick={() => handleRemoveSkill(index)}
+                                color="error"
+                                size="small"
+                              >
+                                <DeleteIcon />
+                              </IconButton>
+                            </Box>
+                          )}
+                        </Grid>
+                        <Grid item xs={12}>
+                          <TextField
+                            fullWidth
+                            label="Назва навички"
+                            name={`skills[${index}].name`}
+                            value={skill.name}
+                            onChange={formik.handleChange}
+                            onBlur={formik.handleBlur}
+                            error={
+                              formik.touched.skills?.[index]?.name &&
+                              Boolean(formik.errors.skills?.[index]?.name)
+                            }
+                            helperText={
+                              formik.touched.skills?.[index]?.name &&
+                              formik.errors.skills?.[index]?.name
+                            }
+                          />
+                        </Grid>
+                        <Grid item xs={12}>
+                          {" "}
+                          <TextField
+                            select
+                            fullWidth
+                            label="Рівень володіння"
+                            name={`skills[${index}].proficiencyLevel`}
+                            value={skill.proficiencyLevel || "BEGINNER"}
+                            onChange={formik.handleChange}
+                            onBlur={formik.handleBlur}
+                            error={
+                              formik.touched.skills?.[index]
+                                ?.proficiencyLevel &&
+                              Boolean(
+                                formik.errors.skills?.[index]?.proficiencyLevel
+                              )
+                            }
+                            helperText={
+                              formik.touched.skills?.[index]
+                                ?.proficiencyLevel &&
+                              formik.errors.skills?.[index]?.proficiencyLevel
+                            }
+                            SelectProps={{
+                              MenuProps: {
+                                classes: { paper: "skill-select-menu" },
+                                className: "skill-select-menu",
+                                MenuListProps: {
+                                  className: "skill-select-menu-list",
+                                },
+                              },
+                            }}
+                          >
+                            {" "}
+                            <MenuItem value="BEGINNER">Початківець</MenuItem>
+                            <MenuItem value="INTERMEDIATE">Середній</MenuItem>
+                            <MenuItem value="ADVANCED">Просунутий</MenuItem>
+                            <MenuItem value="EXPERT">Експерт</MenuItem>
+                          </TextField>
+                        </Grid>
+                      </Grid>
+                    </Paper>
                   </Grid>
-
-                  {formik.values.skills.length > 1 && (
-                    <IconButton
-                      aria-label="delete"
-                      onClick={() => removeSkill(index)}
-                      sx={{ position: "absolute", top: 10, right: 10 }}
-                      color="error"
-                      size="small"
-                    >
-                      <DeleteIcon />
-                    </IconButton>
-                  )}
-                </Paper>
-              ))}
+                ))}
+              </Grid>
             </Grid>
 
+            {/* Submit buttons */}
             <Grid item xs={12}>
               <Box
                 sx={{
@@ -724,7 +937,7 @@ const ResumeForm = () => {
                   onClick={() => navigate("/resumes")}
                   disabled={loading}
                 >
-                  Cancel
+                  Скасувати
                 </Button>
                 <Button
                   type="submit"
@@ -735,9 +948,9 @@ const ResumeForm = () => {
                   {loading ? (
                     <CircularProgress size={24} />
                   ) : isEditMode ? (
-                    "Update Resume"
+                    "Оновити резюме"
                   ) : (
-                    "Create Resume"
+                    "Створити резюме"
                   )}
                 </Button>
               </Box>

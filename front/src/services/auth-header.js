@@ -1,11 +1,9 @@
-// Track last time we logged auth header information to reduce console spam
 let lastAuthLog = 0;
 
 export default function authHeader() {
   try {
     const userStr = localStorage.getItem("user");
 
-    // Limit logging frequency to once per minute
     const now = Date.now();
     const shouldLog =
       process.env.NODE_ENV === "development" && now - lastAuthLog > 60000;
@@ -20,7 +18,6 @@ export default function authHeader() {
 
     const user = JSON.parse(userStr);
 
-    // Check for token/accessToken in user object - handle different naming conventions
     const token = user?.token || user?.accessToken;
 
     if (token) {

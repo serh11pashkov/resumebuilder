@@ -63,15 +63,15 @@ public class DebugAuthController {
             
             response.put("authorities", authorities);
             
-            // Check if authorities contain ROLE_USER
+
             boolean hasUserRole = authorities.contains("ROLE_USER");
             response.put("hasUserRole", hasUserRole);
             
-            // Check if authorities contain ROLE_ADMIN
+ 
             boolean hasAdminRole = authorities.contains("ROLE_ADMIN");
             response.put("hasAdminRole", hasAdminRole);
             
-            // Additional role information from the database
+        
             try {
                 response.put("availableRoles", roleRepository.findAll().stream()
                     .map(r -> Map.of("id", r.getId(), "name", r.getName()))
@@ -118,14 +118,14 @@ public class DebugAuthController {
             
             response.put("authorities", authorities);
             
-            // Test hasAuthority for USER and ADMIN roles
+          
             boolean hasUserAuthority = authorities.contains("ROLE_USER");
             boolean hasAdminAuthority = authorities.contains("ROLE_ADMIN");
             
             response.put("hasUserAuthority", hasUserAuthority);
             response.put("hasAdminAuthority", hasAdminAuthority);
             
-            // Test other authorities
+         
             response.put("allAuthorities", authentication.getAuthorities());
         } else {
             response.put("error", "Principal is not UserDetailsImpl");
@@ -146,16 +146,16 @@ public class DebugAuthController {
         
         response.put("authenticated", authentication.isAuthenticated());
         
-        // Check authorization header
+      
         response.put("authorizationHeader", "Check server logs for this information");
         
-        // Get user details
+     
         if (authentication.getPrincipal() instanceof UserDetailsImpl) {
             UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
             response.put("userId", userDetails.getId());
             response.put("username", userDetails.getUsername());
             
-            // Log detailed information
+     
             logger.info("User ID: {}", userDetails.getId());
             logger.info("Username: {}", userDetails.getUsername());
             logger.info("Authorities: {}", userDetails.getAuthorities());

@@ -11,25 +11,21 @@ class AuthService {
         password,
       })
       .then((response) => {
-        // Log the response for debugging
         console.log(
           "Login response received:",
           JSON.stringify(response.data, null, 2)
         );
 
         if (response.data) {
-          // Handle different token property naming (accessToken or token)
           if (response.data.accessToken) {
             console.log(
               "JWT accessToken received:",
               response.data.accessToken.substring(0, 15) + "..."
             );
 
-            // Ensure roles is an array
             const roles = response.data.roles || [];
             console.log("User roles:", roles);
 
-            // Make a copy of the response data to ensure we have a consistent structure
             const userData = {
               ...response.data,
               token: response.data.accessToken,
@@ -43,13 +39,11 @@ class AuthService {
               response.data.token.substring(0, 15) + "..."
             );
 
-            // Ensure roles is an array
             if (!response.data.roles) {
               console.warn("No roles in response, adding empty array");
               response.data.roles = [];
             }
 
-            // Store the user data in localStorage
             localStorage.setItem("user", JSON.stringify(response.data));
             return response.data;
           } else {
@@ -89,13 +83,11 @@ class AuthService {
     const user = this.getCurrentUser();
     if (!user) return false;
 
-    // Check if user has roles property and it's an array
     if (!user.roles || !Array.isArray(user.roles)) {
       console.warn("User object has no roles array:", user);
       return false;
     }
 
-    // Check if the role is in the user's roles array
     return user.roles.some((role) =>
       typeof role === "string"
         ? role === requiredRole
@@ -103,7 +95,6 @@ class AuthService {
     );
   }
 
-  // Get the auth header with Bearer token
   getAuthHeader() {
     const user = this.getCurrentUser();
     if (!user || !user.token) return null;

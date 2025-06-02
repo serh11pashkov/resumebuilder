@@ -33,249 +33,235 @@ const PublicGallery = () => {
   useEffect(() => {
     loadPublicResumes();
   }, []);
-  useEffect(() => {
-    if (searchQuery.trim() === "") {
-      setFilteredResumes(publicResumes);
-    } else {
-      const lowercasedQuery = searchQuery.toLowerCase();
-      setFilteredResumes(
-        publicResumes.filter((resume) => {
-          let personalInfo = {};
-          try {
-            personalInfo = typeof resume.personalInfo === 'string' ? 
-              JSON.parse(resume.personalInfo || "{}") : 
-              (resume.personalInfo || {});
-          } catch (e) {
-            console.error("Error parsing personal info:", e);
-            personalInfo = {};
-          }
-          
-          const title = resume.title?.toLowerCase() || "";
-          const summary = resume.summary?.toLowerCase() || "";
-          const firstName = personalInfo.firstName?.toLowerCase() || "";
-          const lastName = personalInfo.lastName?.toLowerCase() || "";
-          const email = personalInfo.email?.toLowerCase() || "";
-          
-          return (
-            title.includes(lowercasedQuery) ||
-            summary.includes(lowercasedQuery) ||
-            firstName.includes(lowercasedQuery) ||
-            lastName.includes(lowercasedQuery) ||
-            email.includes(lowercasedQuery)
-          );
-        })
-      );
-    }
-  }, [searchQuery, publicResumes]);
 
-  const loadPublicResumes = async () => {
+  useEffect(() => {
+    const style = document.createElement("style");
+    style.textContent = `
+      .MuiGrid-container {
+        margin-top: 16px;
+      }
+      .resume-card {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        transition: transform 0.3s, box-shadow 0.3s;
+      }
+      .resume-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+      }
+      .resume-card-content {
+        flex-grow: 1;
+      }
+      .meta-item {
+        display: flex;
+        align-items: center;
+        margin-bottom: 8px;
+      }
+      .meta-item svg {
+        margin-right: 8px;
+        font-size: 16px;
+        opacity: 0.7;
+      }
+      .search-wrapper {
+        margin: 16px 0;
+      }
+    `;
+    document.head.appendChild(style);
+
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
+  const loadPublicResumes = () => {
     setLoading(true);
     setError(null);
-    try {
-      const response = await ResumeService.getAllPublicResumes();
-      setPublicResumes(response.data);
-      setFilteredResumes(response.data);
-    } catch (error) {
-      console.error("Error loading public resumes:", error);
-      setError("Failed to load public resumes. Please try again later.");
-    } finally {
-      setLoading(false);
-    }
+    ResumeService.getAllPublicResumes()
+      .then((response) => {
+        console.log("Public resumes data:", response.data);
+        setPublicResumes(response.data);
+        setFilteredResumes(response.data);
+        setLoading(false);
+      })
+      .catch((error) => {
+        console.error("Error loading public resumes:", error);
+        const message =
+          (error.response &&
+            error.response.data &&
+            error.response.data.message) ||
+          error.message ||
+          error.toString();
+        setError(message);
+        setLoading(false);
+      });
+  };
+  const handleDownloadPdf = (id, title, url) => {
+    const resumeId = url || id;
+    ResumeService.getPublicResumePdf(resumeId)
+      .then((response) => {
+        const file = new Blob([response.data], { type: "application/pdf" });
+
+        const fileURL = URL.createObjectURL(file);
+
+        const fileLink = document.createElement("a");
+        fileLink.href = fileURL;
+        fileLink.setAttribute("download", `${title.replace(/\s+/g, "_")}.pdf`);
+        document.body.appendChild(fileLink);
+        fileLink.click();
+        document.body.removeChild(fileLink);
+      })
+      .catch((error) => {
+        console.error("Error downloading PDF:", error);
+        alert(
+          "Помилка при завантаженні PDF. Будь ласка, спробуйте знову пізніше."
+        );
+      });
   };
 
-  const handleSearchChange = (event) => {
-    setSearchQuery(event.target.value);
+  const handleSearch = (e) => {
+    const query = e.target.value.toLowerCase();
+    setSearchQuery(query);
+
+    if (!query) {
+      setFilteredResumes(publicResumes);
+      return;
+    }
+
+    const filtered = publicResumes.filter((resume) => {
+      if (resume.title.toLowerCase().includes(query)) return true;
+
+      if (resume.username?.toLowerCase().includes(query)) return true;
+
+      try {
+        const skills = JSON.parse(resume.skills || "[]");
+        for (const skill of skills) {
+          if (skill.name.toLowerCase().includes(query)) return true;
+        }
+      } catch (e) {}
+
+      if (resume.summary?.toLowerCase().includes(query)) return true;
+
+      return false;
+    });
+
+    setFilteredResumes(filtered);
   };
 
-  const handleClearSearch = () => {
-    setSearchQuery("");
-  };
-  const getPersonalInfo = (resume) => {
-    try {
-      if (typeof resume.personalInfo === 'string') {
-        return JSON.parse(resume.personalInfo || "{}");
-      } else if (typeof resume.personalInfo === 'object' && resume.personalInfo !== null) {
-        return resume.personalInfo;
-      } else {
-        return {};
-      }
-    } catch (error) {
-      console.error("Error parsing personal info:", error);
-      return {};
-    }
-  };
-
-  const formatDate = (dateString) => {
-    if (!dateString) return "";
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString();
-    } catch (error) {
-      return dateString;
-    }
-  };
+  if (loading) {
+    return (
+      <Container maxWidth="lg" sx={{ mt: 4, mb: 4, textAlign: "center" }}>
+        <CircularProgress />
+        <Typography variant="h6" sx={{ mt: 2 }}>
+          Завантаження галереї резюме...
+        </Typography>
+      </Container>
+    );
+  }
 
   return (
-    <Container className="public-gallery-container" maxWidth="lg">
-      <Box sx={{ my: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Public Resume Gallery
-        </Typography>
-        <Typography variant="body1" color="text.secondary" paragraph>
-          Browse through publicly shared resumes for inspiration and ideas.
-        </Typography>
+    <Container maxWidth="lg" sx={{ mt: 4, mb: 8 }}>
+      <Typography variant="h4" component="h1" gutterBottom>
+        Галерея публічних резюме
+      </Typography>
+      <Typography variant="body1" gutterBottom sx={{ mb: 3 }}>
+        Перегляньте публічно доступні резюме для натхнення та ідей.
+      </Typography>
 
-        {/* Search Bar */}
+      {error && (
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {error}
+        </Alert>
+      )}
+
+      <Box className="search-wrapper">
         <TextField
           fullWidth
+          placeholder="Пошук резюме за іменем, навичками або резюме"
           variant="outlined"
-          placeholder="Search resumes by name, skills, or summary"
           value={searchQuery}
-          onChange={handleSearchChange}
-          sx={{ mb: 4, mt: 2 }}
+          onChange={handleSearch}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
                 <SearchIcon />
               </InputAdornment>
             ),
-            endAdornment: searchQuery ? (
-              <InputAdornment position="end">
-                <IconButton onClick={handleClearSearch} edge="end">
-                  ✕
-                </IconButton>
-              </InputAdornment>
-            ) : null,
           }}
         />
-
-        {loading ? (
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              minHeight: "200px",
-            }}
-          >
-            <CircularProgress />
-          </Box>
-        ) : error ? (
-          <Alert severity="error" sx={{ my: 2 }}>
-            {error}
-          </Alert>
-        ) : filteredResumes.length === 0 ? (
-          <Alert severity="info" sx={{ my: 2 }}>
-            No public resumes found. Be the first to share your resume!
-          </Alert>
-        ) : (
-          <Grid container spacing={3}>
-            {filteredResumes.map((resume) => {
-              const personalInfo = getPersonalInfo(resume);
-              return (
-                <Grid item xs={12} sm={6} md={4} key={resume.id}>
-                  <Card
-                    elevation={2}
-                    className="resume-card"
-                    sx={{
-                      height: "100%",
-                      display: "flex",
-                      flexDirection: "column",
-                      transition: "transform 0.2s, box-shadow 0.2s",
-                      "&:hover": {
-                        transform: "translateY(-4px)",
-                        boxShadow: 8,
-                      },
-                    }}
-                  >
-                    <CardContent sx={{ flexGrow: 1 }}>
-                      <Typography
-                        variant="h6"
-                        component="h2"
-                        gutterBottom
-                        noWrap
-                        sx={{ fontWeight: "bold" }}
-                      >
-                        {resume.title}
-                      </Typography>
-
-                      <Box
-                        sx={{ mb: 2, display: "flex", alignItems: "center" }}
-                      >
-                        <PersonIcon
-                          fontSize="small"
-                          sx={{ mr: 1, opacity: 0.6 }}
-                        />
-                        <Typography variant="body2" color="text.secondary">
-                          {personalInfo.firstName} {personalInfo.lastName}
-                        </Typography>
-                      </Box>
-
-                      <Box
-                        sx={{ mb: 2, display: "flex", alignItems: "center" }}
-                      >
-                        <CalendarTodayIcon
-                          fontSize="small"
-                          sx={{ mr: 1, opacity: 0.6 }}
-                        />
-                        <Typography variant="body2" color="text.secondary">
-                          {formatDate(resume.createdAt)}
-                        </Typography>
-                      </Box>
-
-                      <Typography
-                        variant="body2"
-                        color="text.secondary"
-                        sx={{
-                          mb: 2,
-                          display: "-webkit-box",
-                          WebkitLineClamp: 3,
-                          WebkitBoxOrient: "vertical",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                        }}
-                      >
-                        {resume.summary}
-                      </Typography>
-
-                      <Box sx={{ mt: 2 }}>
-                        <Chip
-                          size="small"
-                          label={resume.templateName || "Classic"}
-                          sx={{ mr: 1, mb: 1 }}
-                        />
-                      </Box>
-                    </CardContent>
-
-                    <CardActions>
-                      <Button
-                        size="small"
-                        startIcon={<VisibilityIcon />}
-                        component={Link}
-                        to={`/public/resumes/${resume.publicUrl}`}
-                      >
-                        View
-                      </Button>
-                      <Button
-                        size="small"
-                        startIcon={<PictureAsPdfIcon />}
-                        onClick={() => {
-                          window.open(
-                            `http://localhost:8080/api/public/resumes/${resume.publicUrl}/pdf`,
-                            "_blank"
-                          );
-                        }}
-                      >
-                        PDF
-                      </Button>
-                    </CardActions>
-                  </Card>
-                </Grid>
-              );
-            })}
-          </Grid>
-        )}
       </Box>
+
+      {filteredResumes.length === 0 ? (
+        <Alert severity="info" sx={{ mt: 2 }}>
+          Публічних резюме не знайдено. Будьте першим, хто поділиться своїм
+          резюме!
+        </Alert>
+      ) : (
+        <Grid container spacing={3}>
+          {filteredResumes.map((resume) => (
+            <Grid item xs={12} sm={6} md={4} key={resume.id}>
+              <Card className="resume-card">
+                <CardContent className="resume-card-content">
+                  <Typography variant="h6" component="h2" gutterBottom>
+                    {resume.title}
+                  </Typography>{" "}
+                  <Box sx={{ mt: 2, mb: 2 }}>
+                    <Chip
+                      label={resume.templateName || "Базовий"}
+                      size="small"
+                      sx={{ mr: 1, mb: 1 }}
+                    />
+                  </Box>
+                  <Box sx={{ mt: 2 }}>
+                    <div className="meta-item">
+                      <PersonIcon />
+                      <Typography variant="body2">
+                        Автор: {resume.username || "Анонімний користувач"}
+                      </Typography>
+                    </div>
+
+                    <div className="meta-item">
+                      <CalendarTodayIcon />
+                      <Typography variant="body2">
+                        Створено:{" "}
+                        {new Date(resume.createdAt).toLocaleDateString()}
+                      </Typography>
+                    </div>
+                  </Box>
+                </CardContent>
+                <CardActions>
+                  {" "}
+                  <Button
+                    component={Link}
+                    to={`/public/resume/${
+                      resume.shareUrl ||
+                      resume.publicUrl ||
+                      resume.url ||
+                      resume.id
+                    }`}
+                    size="small"
+                    startIcon={<VisibilityIcon />}
+                  >
+                    Переглянути
+                  </Button>
+                  <Button
+                    size="small"
+                    startIcon={<PictureAsPdfIcon />}
+                    onClick={() =>
+                      handleDownloadPdf(
+                        resume.id,
+                        resume.title,
+                        resume.shareUrl || resume.publicUrl || resume.url
+                      )
+                    }
+                  >
+                    PDF
+                  </Button>
+                </CardActions>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+      )}
     </Container>
   );
 };

@@ -2,12 +2,11 @@ import { useState, useEffect } from "react";
 import { Navigate } from "react-router-dom";
 import AuthService from "../services/auth.service";
 
-const PrivateRoute = ({ children, requiredRole }) => {
+const PrivateRoute = ({ element, requiredRole }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Get the current user on component mount
     const user = AuthService.getCurrentUser();
 
     if (user) {
@@ -21,18 +20,15 @@ const PrivateRoute = ({ children, requiredRole }) => {
     setIsLoading(false);
   }, []);
 
-  // Show loading spinner while checking authentication
   if (isLoading) {
-    return <div>Loading authentication state...</div>;
+    return <div>Перевірка автентифікації...</div>;
   }
 
-  // If not logged in, redirect to login
   if (!currentUser) {
     console.log("PrivateRoute: User not authenticated, redirecting to login");
     return <Navigate to="/login" />;
   }
 
-  // If role is required and user doesn't have it, redirect to home
   if (requiredRole && !currentUser.roles.includes(requiredRole)) {
     console.log(
       `PrivateRoute: User doesn't have required role: ${requiredRole}, redirecting to home`
@@ -40,11 +36,10 @@ const PrivateRoute = ({ children, requiredRole }) => {
     return <Navigate to="/" />;
   }
 
-  // Otherwise, render the children
   console.log(
     "PrivateRoute: Authentication successful, rendering protected content"
   );
-  return children;
+  return element;
 };
 
 export default PrivateRoute;

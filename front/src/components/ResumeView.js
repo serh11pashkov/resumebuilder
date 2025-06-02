@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import ResumeService from "../services/resume.service";
+import "./templates/index.css";
 import {
   Container,
   Typography,
@@ -24,17 +25,11 @@ import {
 import {
   Edit as EditIcon,
   Delete as DeleteIcon,
-  Download as DownloadIcon,
   PictureAsPdf as PdfIcon,
   FormatPaint as ThemeIcon,
-  ZoomIn as ZoomInIcon,
-  ZoomOut as ZoomOutIcon,
   Close as CloseIcon,
-  Share as ShareIcon,
-  Public as PublicIcon,
-  PublicOff as PublicOffIcon,
 } from "@mui/icons-material";
-import { TEMPLATES } from "./templates";
+import { TEMPLATES, TEMPLATE_LIST } from "./templates";
 
 const ResumeView = () => {
   const { id } = useParams();
@@ -44,388 +39,315 @@ const ResumeView = () => {
   const [error, setError] = useState(null);
   const [currentTemplate, setCurrentTemplate] = useState("classic");
   const [showThemesDialog, setShowThemesDialog] = useState(false);
-  const [previewScale, setPreviewScale] = useState(1);
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
-  const [isZooming, setIsZooming] = useState(false);
   const [isPublic, setIsPublic] = useState(false);
-  const [sharingLoading, setSharingLoading] = useState(false);
-  const zoomTimeoutRef = useRef(null);
-
-  const printRef = useRef();  const loadResume = useCallback(() => {
-    setLoading(true);    console.log(`ResumeView: Loading resume with ID: ${id}`);
-    
-    // First, check if user has the right permissions to view this resume
-    ResumeService.checkResumePermissions(id)
-      .then((permissionResponse) => {
-        console.log(`ResumeView: Permission check result:`, permissionResponse.data);
-        if (permissionResponse.data.accessAllowed) {
-          return ResumeService.getById(id);
-        } else {
-          throw new Error("You don't have permission to view this resume");
-        }
-      })
-      .then((response) => {
-        console.log(`ResumeView: Resume loaded successfully:`, response.data);
-        setResume(response.data);
-        setIsPublic(response.data.isPublic || false);
-        setLoading(false);
-      })
-      .catch((error) => {
-        console.error(`ResumeView: Error loading resume:`, error);
-        const message =
-          (error.response &&
-            error.response.data &&
-            error.response.data.message) ||
-          error.message ||
-          error.toString();
-        setError(message);
-        setLoading(false);
-      });
-  }, [id]);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
+  const [darkMode, setDarkMode] = useState(false);
+  const previewRef = useRef(null);
   useEffect(() => {
     loadResume();
 
-    // Cleanup zoom timeout on unmount
-    return () => {
-      if (zoomTimeoutRef.current) {
-        clearTimeout(zoomTimeoutRef.current);
+    const isDarkMode = localStorage.getItem("darkMode") === "true";
+    setDarkMode(isDarkMode);
+  }, [id]);
+  useEffect(() => {
+    if (resume && resume.templateName) {
+      setCurrentTemplate(resume.templateName);
+    }
+  }, [resume]);
+
+  const loadResume = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await ResumeService.getById(id);
+      setResume(response.data);
+      setIsPublic(response.data.isPublic);
+      setLoading(false);
+    } catch (error) {
+      console.error("Error loading resume:", error);
+      const message =
+        (error.response &&
+          error.response.data &&
+          error.response.data.message) ||
+        error.message ||
+        error.toString();
+      setError(message);
+      setLoading(false);
+    }
+  }, [id]);
+
+  const handleDelete = async () => {
+    if (window.confirm("Ви впевнені, що хочете видалити це резюме?")) {
+      try {
+        await ResumeService.delete(id);
+        navigate("/resumes");
+      } catch (error) {
+        console.error("Error deleting resume:", error);
+        const message =
+          (error.response &&
+            error.response.data &&
+            error.response.data.message) ||
+          error.message ||
+          error.toString();
+        setError(message);
       }
-    };
-  }, [loadResume]);
-
-  const handleDownloadPdf = () => {
-    if (!resume) return;
-    setLoading(true);
-
-    ResumeService.getPdf(id)
-      .then((response) => {
-        // Create a blob from the PDF Stream
-        const file = new Blob([response.data], { type: "application/pdf" });
-
-        // Build a URL from the file
-        const fileURL = URL.createObjectURL(file);
-
-        // Create a link element
-        const downloadLink = document.createElement("a");
-        downloadLink.href = fileURL;
-        downloadLink.download = `${resume.title}.pdf`;
-
-        // Append to the document
-        document.body.appendChild(downloadLink);
-
-        // Trigger the download
-        downloadLink.click();
-
-        // Clean up - remove the link after triggering download
-        document.body.removeChild(downloadLink);
-
-        setLoading(false);
-        setSuccessMessage("PDF Downloaded Successfully");
-        setShowSuccess(true);
-      })
-      .catch((error) => {
-        const message =
-          (error.response &&
-            error.response.data &&
-            error.response.data.message) ||
-          error.message ||
-          error.toString();
-        setError(message);
-        setLoading(false);
-      });
-  };
-
-  const handleDeleteResume = () => {
-    // Confirm before deleting
-    if (window.confirm("Are you sure you want to delete this resume?")) {
-      setLoading(true);
-      ResumeService.delete(id)
-        .then(() => {
-          navigate("/resumes");
-        })
-        .catch((error) => {
-          const message =
-            (error.response &&
-              error.response.data &&
-              error.response.data.message) ||
-            error.message ||
-            error.toString();
-          setError(message);
-          setLoading(false);
-        });
     }
   };
+  const handleDownloadPDF = async () => {
+    try {
+      const response = await ResumeService.getPdf(id);
 
-  const togglePublicStatus = () => {
-    setSharingLoading(true);
+      const file = new Blob([response.data], { type: "application/pdf" });
 
-    const toggleAction = isPublic
-      ? ResumeService.makePrivate(id)
-      : ResumeService.makePublic(id);
+      const fileURL = URL.createObjectURL(file);
 
-    toggleAction
-      .then((response) => {
-        setIsPublic(response.data.isPublic);
-        setSuccessMessage(
-          isPublic ? "Resume is now private" : "Resume is now public"
-        );
-        setShowSuccess(true);
-        setSharingLoading(false);
-      })
-      .catch((error) => {
-        const message =
-          (error.response &&
-            error.response.data &&
-            error.response.data.message) ||
-          error.message ||
-          error.toString();
-        setError(message);
-        setSharingLoading(false);
-      });
-  };
-
-  const handleTemplateChange = (templateId) => {
-    setLoading(true);
-
-    // Save the template preference to backend
-    ResumeService.updateResume(id, { ...resume, templateName: templateId })
-      .then((response) => {
-        setCurrentTemplate(templateId);
-        setResume(response.data);
-        setSuccessMessage("Template Updated Successfully");
-        setShowSuccess(true);
-        setLoading(false);
-      })
-      .catch((error) => {
-        const message =
-          (error.response &&
-            error.response.data &&
-            error.response.data.message) ||
-          error.message ||
-          error.toString();
-        setError(message);
-        setLoading(false);
-      });
-
-    setShowThemesDialog(false);
-  };
-  const renderTemplate = () => {
-    const template = TEMPLATES.find((t) => t.id === currentTemplate);
-    if (!template) return null;
-
-    // If we're actively zooming, use a simplified preview to prevent lagging
-    if (isZooming) {
-      return (
-        <Box
-          sx={{
-            transform: `scale(${previewScale})`,
-            transformOrigin: "top center",
-            padding: "20px",
-            backgroundColor: "white",
-            width: "100%",
-            transition: "none",
-            minHeight: "300px",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-        >
-          <Typography>Adjusting zoom level...</Typography>
-        </Box>
+      const fileLink = document.createElement("a");
+      fileLink.href = fileURL;
+      fileLink.setAttribute(
+        "download",
+        `${resume.title.replace(/\s+/g, "_")}.pdf`
       );
+      document.body.appendChild(fileLink);
+      fileLink.click();
+      document.body.removeChild(fileLink);
+    } catch (error) {
+      console.error("Error downloading PDF:", error);
+      setSnackbarMessage(
+        "Помилка при завантаженні PDF. Будь ласка, спробуйте знову."
+      );
+      setSnackbarOpen(true);
     }
+  };
+  const handleChangeTemplate = async (template) => {
+    setShowThemesDialog(false);
 
-    const TemplateComponent = template.component;
-    return <TemplateComponent resume={resume} scale={previewScale} />;
+    if (template === currentTemplate) return;
+
+    try {
+      const updatedResume = { ...resume, templateName: template };
+      await ResumeService.update(id, updatedResume);
+
+      setCurrentTemplate(template);
+      setResume(updatedResume);
+
+      setSnackbarMessage("Шаблон успішно оновлено");
+      setSnackbarOpen(true);
+    } catch (error) {
+      console.error("Error updating template:", error);
+      setSnackbarMessage("Помилка при зміні шаблону");
+      setSnackbarOpen(true);
+    }
   };
 
-  if (loading && !resume) {
+  const handlePublicToggle = async (event) => {
+    const newPublicStatus = event.target.checked;
+
+    try {
+      const updatedResume = { ...resume, isPublic: newPublicStatus };
+      await ResumeService.update(id, updatedResume);
+
+      setIsPublic(newPublicStatus);
+      setResume(updatedResume);
+
+      setSnackbarMessage(
+        newPublicStatus
+          ? "Ваше резюме тепер доступне публічно"
+          : "Ваше резюме тепер приватне"
+      );
+      setSnackbarOpen(true);
+    } catch (error) {
+      console.error("Error updating public status:", error);
+      setSnackbarMessage("Помилка при оновленні статусу видимості");
+      setSnackbarOpen(true);
+    }
+  };
+
+  const handleCloseSnackbar = () => {
+    setSnackbarOpen(false);
+  };
+
+  if (loading) {
     return (
-      <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
+      <Container sx={{ textAlign: "center", mt: 4 }}>
         <CircularProgress />
-      </Box>
+        <Typography variant="h6" sx={{ mt: 2 }}>
+          Завантаження резюме...
+        </Typography>
+      </Container>
     );
   }
 
   if (error) {
     return (
-      <Container maxWidth="md" sx={{ mt: 4 }}>
-        <Alert severity="error">{error}</Alert>
-        <Box sx={{ mt: 2 }}>
-          <Button component={Link} to="/resumes" variant="contained">
-            Back to Resumes
-          </Button>
-        </Box>
+      <Container sx={{ mt: 4 }}>
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+        <Button
+          component={Link}
+          to="/resumes"
+          variant="contained"
+          color="primary"
+        >
+          Повернутися до списку резюме
+        </Button>
       </Container>
     );
   }
 
+  // Render 404 message if resume not found
+  if (!resume) {
+    return (
+      <Container sx={{ mt: 4 }}>
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          Резюме не знайдено. Можливо, воно було видалено або у вас немає прав
+          доступу.
+        </Alert>
+        <Button
+          component={Link}
+          to="/resumes"
+          variant="contained"
+          color="primary"
+        >
+          Повернутися до списку резюме
+        </Button>
+      </Container>
+    );
+  }
+
+  console.log("ResumeView - Current template:", currentTemplate);
+  console.log("ResumeView - Available templates:", Object.keys(TEMPLATES));
+
+  const Template = TEMPLATES[currentTemplate] || TEMPLATES.classic;
+  console.log(
+    "ResumeView - Selected template:",
+    Template ? "Found" : "Not found"
+  );
+
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          mb: 2,
-          alignItems: "center",
-        }}
-      >
-        <Typography variant="h4">Resume Preview</Typography>
+    <Container maxWidth="lg" sx={{ mt: 4, mb: 8 }}>
+      {/* Resume Actions Bar */}
+      <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}>
         <Box sx={{ display: "flex", gap: 1 }}>
-          <Tooltip title="Change Template">
-            <Button
-              variant="outlined"
-              startIcon={<ThemeIcon />}
-              onClick={() => setShowThemesDialog(true)}
-            >
-              Templates
-            </Button>
-          </Tooltip>
-          <Tooltip title="Download PDF">
-            <Button
-              variant="outlined"
-              startIcon={<DownloadIcon />}
-              onClick={handleDownloadPdf}
-              disabled={loading}
-            >
-              Download PDF
-            </Button>
-          </Tooltip>
-
-          <Tooltip title={isPublic ? "Make Private" : "Share Publicly"}>
-            <Button
-              variant="outlined"
-              color={isPublic ? "success" : "default"}
-              startIcon={isPublic ? <PublicIcon /> : <ShareIcon />}
-              onClick={togglePublicStatus}
-              disabled={sharingLoading}
-            >
-              {isPublic ? "Public" : "Share"}
-            </Button>
-          </Tooltip>
-
-          <Tooltip title="Edit Resume">
-            <Button
-              variant="outlined"
-              color="primary"
-              startIcon={<EditIcon />}
-              component={Link}
-              to={`/resumes/edit/${id}`}
-            >
-              Edit
-            </Button>
-          </Tooltip>
-
-          <Tooltip title="Delete Resume">
-            <Button
-              variant="outlined"
-              color="error"
-              startIcon={<DeleteIcon />}
-              onClick={handleDeleteResume}
-              disabled={loading}
-            >
-              Delete
-            </Button>
-          </Tooltip>
+          <Button component={Link} to="/resumes" variant="outlined">
+            Назад до списку
+          </Button>
+          <Button
+            component={Link}
+            to={`/resumes/edit/${id}`}
+            variant="contained"
+            color="primary"
+            startIcon={<EditIcon />}
+          >
+            Редагувати
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            startIcon={<DeleteIcon />}
+            onClick={handleDelete}
+          >
+            Видалити
+          </Button>
         </Box>
-      </Box>{" "}
-      <Box sx={{ mb: 2, display: "flex", justifyContent: "center", gap: 2 }}>
-        <IconButton
-          onClick={() => {
-            setPreviewScale((prev) => Math.max(0.5, prev - 0.1));
-            setIsZooming(true);
-
-            // Debounce rendering during rapid zooming
-            if (zoomTimeoutRef.current) {
-              clearTimeout(zoomTimeoutRef.current);
-            }
-
-            zoomTimeoutRef.current = setTimeout(() => {
-              setIsZooming(false);
-            }, 300);
-          }}
-        >
-          <ZoomOutIcon />
-        </IconButton>
-        <Typography
-          variant="body2"
-          sx={{ display: "flex", alignItems: "center" }}
-        >
-          {Math.round(previewScale * 100)}%
-        </Typography>
-        <IconButton
-          onClick={() => {
-            setPreviewScale((prev) => Math.min(1.5, prev + 0.1));
-            setIsZooming(true);
-
-            // Debounce rendering during rapid zooming
-            if (zoomTimeoutRef.current) {
-              clearTimeout(zoomTimeoutRef.current);
-            }
-
-            zoomTimeoutRef.current = setTimeout(() => {
-              setIsZooming(false);
-            }, 300);
-          }}
-        >
-          <ZoomInIcon />
-        </IconButton>
+        <Box sx={{ display: "flex", gap: 1 }}>
+          <Button
+            variant="contained"
+            color="success"
+            startIcon={<PdfIcon />}
+            onClick={handleDownloadPDF}
+          >
+            Завантажити PDF
+          </Button>
+          <Button
+            variant="contained"
+            color="info"
+            startIcon={<ThemeIcon />}
+            onClick={() => setShowThemesDialog(true)}
+          >
+            Вибрати шаблон
+          </Button>
+        </Box>
       </Box>
+      {/* Public toggle switch */}
+      <Box sx={{ mb: 2 }}>
+        <FormControlLabel
+          control={
+            <Switch
+              checked={isPublic}
+              onChange={handlePublicToggle}
+              color="primary"
+            />
+          }
+          label="Опублікувати це резюме публічно"
+        />
+        <Typography variant="body2" color="text.secondary">
+          {isPublic
+            ? "Це резюме видно всім відвідувачам сайту в галереї резюме."
+            : "Це резюме видно тільки вам."}
+        </Typography>
+      </Box>{" "}
+      {/* Resume Preview */}{" "}
       <Box
-        ref={printRef}
+        ref={previewRef}
         sx={{
-          overflow: "auto",
-          maxHeight: "calc(100vh - 220px)",
-          backgroundColor: "#f5f5f5",
-          p: 2,
+          backgroundColor: darkMode ? "#242424" : "#fff",
+          p: 4,
+          boxShadow: 3,
           borderRadius: 1,
+          minHeight: "80vh",
         }}
       >
-        {resume && renderTemplate()}
-      </Box>
-      {/* Template Selection Dialog */}
+        <Template resume={resume} darkMode={darkMode} />
+      </Box>{" "}
+      {/* Theme Selection Dialog */}
       <Dialog
         open={showThemesDialog}
         onClose={() => setShowThemesDialog(false)}
-        maxWidth="md"
-        fullWidth
+        maxWidth={false}
+        className="template-selection-dialog"
+        PaperProps={{
+          style: {
+            width: "66vw",
+            maxWidth: "900px",
+            minWidth: "320px",
+          },
+        }}
       >
         <DialogContent>
-          <Typography variant="h5" gutterBottom>
-            Choose a Template
+          <Typography variant="subtitle1" sx={{ fontSize: "1.1rem", mb: 1 }}>
+            Виберіть шаблон для резюме
           </Typography>
-          <Grid container spacing={3}>
-            {TEMPLATES.map((template) => (
-              <Grid item xs={12} sm={4} key={template.id}>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            {TEMPLATE_LIST.map((template) => (
+              <Grid item xs={12} sm={6} md={4} key={template.id}>
                 <Card
+                  className="template-card"
                   sx={{
                     border:
-                      currentTemplate === template.id
-                        ? "2px solid #3f51b5"
-                        : "1px solid #e0e0e0",
-                    height: "100%",
+                      template.id === currentTemplate
+                        ? "2.5px solid #4caf50"
+                        : "1.5px solid #e0e0e0",
+                    maxWidth: "100%",
                   }}
                 >
                   <CardActionArea
-                    onClick={() => handleTemplateChange(template.id)}
+                    onClick={() => handleChangeTemplate(template.id)}
+                    sx={{ minHeight: 120, p: 2 }}
                   >
-                    <Box
-                      sx={{
-                        height: 150,
-                        backgroundColor: "#f5f5f5",
-                        display: "flex",
-                        justifyContent: "center",
-                        alignItems: "center",
-                      }}
-                    >
-                      <PdfIcon sx={{ fontSize: 60, color: "#9e9e9e" }} />
-                    </Box>
-                    <CardContent>
-                      <Typography variant="h6" gutterBottom>
+                    <CardContent sx={{ padding: "18px 16px" }}>
+                      <Typography
+                        variant="h6"
+                        sx={{ fontWeight: "600", mb: 1, fontSize: "1.15rem" }}
+                      >
                         {template.name}
                       </Typography>
-                      <Typography variant="body2" color="textSecondary">
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{ fontSize: "1rem" }}
+                      >
                         {template.description}
                       </Typography>
                     </CardContent>
@@ -436,19 +358,22 @@ const ResumeView = () => {
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setShowThemesDialog(false)}>Close</Button>
+          <Button onClick={() => setShowThemesDialog(false)} color="primary">
+            Скасувати
+          </Button>
         </DialogActions>
       </Dialog>
+      {}
       <Snackbar
-        open={showSuccess}
-        autoHideDuration={3000}
-        onClose={() => setShowSuccess(false)}
-        message={successMessage}
+        open={snackbarOpen}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+        message={snackbarMessage}
         action={
           <IconButton
             size="small"
             color="inherit"
-            onClick={() => setShowSuccess(false)}
+            onClick={handleCloseSnackbar}
           >
             <CloseIcon fontSize="small" />
           </IconButton>

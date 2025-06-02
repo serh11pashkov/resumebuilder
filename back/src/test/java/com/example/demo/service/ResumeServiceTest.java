@@ -46,12 +46,10 @@ public class ResumeServiceTest {
     public void setup() {
         MockitoAnnotations.openMocks(this);
         
-        // Create test data
         testUser = new User();
         testUser.setId(1L);
         testUser.setUsername("testuser");
         
-        // Create Entity objects
         testResume = new Resume();
         testResume.setId(1L);
         testResume.setTitle("Test Resume");
@@ -59,7 +57,6 @@ public class ResumeServiceTest {
         testResume.setSummary("Experienced professional with skills in software development");
         testResume.setUser(testUser);
         
-        // Add educations as Set
         Set<Education> educations = new HashSet<>();
         Education education = new Education();
         education.setId(1L);
@@ -70,7 +67,6 @@ public class ResumeServiceTest {
         educations.add(education);
         testResume.setEducations(educations);
         
-        // Add experiences as Set
         Set<Experience> experiences = new HashSet<>();
         Experience experience = new Experience();
         experience.setId(1L);
@@ -80,7 +76,6 @@ public class ResumeServiceTest {
         experiences.add(experience);
         testResume.setExperiences(experiences);
         
-        // Add skills as Set
         Set<Skill> skills = new HashSet<>();
         Skill skill = new Skill();
         skill.setId(1L);
@@ -90,7 +85,6 @@ public class ResumeServiceTest {
         skills.add(skill);
         testResume.setSkills(skills);
         
-        // Create DTO objects
         testResumeDto = new ResumeDto();
         testResumeDto.setId(1L);
         testResumeDto.setTitle("Test Resume");
@@ -126,22 +120,18 @@ public class ResumeServiceTest {
         skillDtos.add(skillDto);
         testResumeDto.setSkills(skillDtos);
         
-        // Mock finding a user
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
     }
 
     @Test
     public void testGetAllResumes() {
-        // Arrange
         List<Resume> mockResumes = new ArrayList<>();
         mockResumes.add(testResume);
         
         when(resumeRepository.findAll()).thenReturn(mockResumes);
         
-        // Act
         List<ResumeDto> result = resumeService.getAllResumes();
         
-        // Assert
         assertEquals(1, result.size());
         assertEquals(testResumeDto.getId(), result.get(0).getId());
         assertEquals(testResumeDto.getTitle(), result.get(0).getTitle());
@@ -150,13 +140,10 @@ public class ResumeServiceTest {
 
     @Test
     public void testGetResumeById() {
-        // Arrange
         when(resumeRepository.findById(1L)).thenReturn(Optional.of(testResume));
         
-        // Act
         Optional<ResumeDto> result = resumeService.getResumeById(1L);
         
-        // Assert
         assertTrue(result.isPresent());
         assertEquals(testResumeDto.getId(), result.get().getId());
         assertEquals(testResumeDto.getTitle(), result.get().getTitle());
@@ -165,29 +152,23 @@ public class ResumeServiceTest {
 
     @Test
     public void testGetResumeById_NotFound() {
-        // Arrange
         when(resumeRepository.findById(999L)).thenReturn(Optional.empty());
         
-        // Act
         Optional<ResumeDto> result = resumeService.getResumeById(999L);
         
-        // Assert
         assertFalse(result.isPresent());
         verify(resumeRepository, times(1)).findById(999L);
     }
 
     @Test
     public void testGetResumesByUserId() {
-        // Arrange
         List<Resume> mockResumes = new ArrayList<>();
         mockResumes.add(testResume);
         
         when(resumeRepository.findByUserId(1L)).thenReturn(mockResumes);
         
-        // Act
         List<ResumeDto> result = resumeService.getResumesByUserId(1L);
         
-        // Assert
         assertEquals(1, result.size());
         assertEquals(testResumeDto.getId(), result.get(0).getId());
         assertEquals(testResumeDto.getTitle(), result.get(0).getTitle());
@@ -196,13 +177,10 @@ public class ResumeServiceTest {
 
     @Test
     public void testCreateResume() {
-        // Arrange
         when(resumeRepository.save(any(Resume.class))).thenReturn(testResume);
         
-        // Act
         ResumeDto result = resumeService.createResume(testResumeDto);
         
-        // Assert
         assertNotNull(result);
         assertEquals(testResumeDto.getId(), result.getId());
         assertEquals(testResumeDto.getTitle(), result.getTitle());
@@ -212,17 +190,13 @@ public class ResumeServiceTest {
 
     @Test
     public void testUpdateResume() {
-        // Arrange
         when(resumeRepository.findById(1L)).thenReturn(Optional.of(testResume));
         when(resumeRepository.save(any(Resume.class))).thenReturn(testResume);
         
-        // Update the DTO
         testResumeDto.setTitle("Updated Resume Title");
         
-        // Act
         Optional<ResumeDto> result = resumeService.updateResume(1L, testResumeDto);
         
-        // Assert
         assertTrue(result.isPresent());
         assertEquals("Updated Resume Title", result.get().getTitle());
         verify(resumeRepository, times(1)).findById(1L);
@@ -231,13 +205,11 @@ public class ResumeServiceTest {
 
     @Test
     public void testDeleteResume() {
-        // Arrange
         doNothing().when(resumeRepository).deleteById(1L);
         
-        // Act
         resumeService.deleteResume(1L);
         
-        // Assert
+        // 
         verify(resumeRepository, times(1)).deleteById(1L);
     }
 }

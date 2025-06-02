@@ -21,8 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import java.util.HashMap;
-import java.util.stream.Collectors;
+    
 
 @CrossOrigin(origins = "http://localhost:3000", maxAge = 3600, allowCredentials = "true")
 @RestController
@@ -46,7 +45,6 @@ public class ResumeController {
     public ResponseEntity<List<ResumeDto>> getResumesByUserId(@PathVariable Long userId) {
         logger.info("Getting resumes for user ID: {}", userId);
         try {
-            // Get current authenticated user
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             if (authentication == null || !authentication.isAuthenticated()) {
                 logger.warn("No authenticated user found when accessing resumes for user ID: {}", userId);
@@ -56,10 +54,8 @@ public class ResumeController {
             String username = authentication.getName();
             logger.info("Authenticated user: {} is accessing resumes for user ID: {}", username, userId);
             
-            // Log all authorities for debugging
             logger.info("User '{}' authorities: {}", username, authentication.getAuthorities());
             
-            // Check if the user is ROLE_ADMIN or if they are accessing their own resumes
             boolean isAdmin = authentication.getAuthorities().stream()
                     .anyMatch(a -> a.getAuthority().contains("ROLE_ADMIN"));
             logger.info("Is admin role present: {}", isAdmin);
@@ -68,7 +64,6 @@ public class ResumeController {
             Long authenticatedUserId = userDetails.getId();
             logger.info("Authenticated user ID: {}", authenticatedUserId);
             
-            // Allow access if admin or accessing own resumes
             if (isAdmin || authenticatedUserId.equals(userId)) {
                 List<ResumeDto> resumes = resumeService.getResumesByUserId(userId);
                 logger.info("Found {} resumes for user ID: {}", resumes.size(), userId);
@@ -88,7 +83,6 @@ public class ResumeController {
     public ResponseEntity<ResumeDto> getResumeById(@PathVariable Long id) {
         logger.debug("Getting resume by ID: {}", id);
         try {
-            // Get current authenticated user
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             if (authentication == null || !authentication.isAuthenticated()) {
                 logger.warn("No authenticated user found when accessing resume ID: {}", id);
@@ -97,7 +91,6 @@ public class ResumeController {
               String username = authentication.getName();
             logger.debug("Authenticated user: {} is accessing resume ID: {}", username, id);
             
-            // Check if user has ADMIN role
             boolean isAdmin = authentication.getAuthorities().stream()
                     .anyMatch(a -> a.getAuthority().contains("ADMIN"));
             
@@ -109,7 +102,6 @@ public class ResumeController {
             
             ResumeDto resume = resumeOpt.get();
             
-            // If user is not admin, check if they are accessing their own resume
             if (!isAdmin) {
                 Long authenticatedUserId = ((UserDetailsImpl) authentication.getPrincipal()).getId();
                 if (!authenticatedUserId.equals(resume.getUserId())) {
@@ -168,23 +160,19 @@ public class ResumeController {
         logger.info("User '{}' is attempting to create a resume", username);        logger.info("User authorities: {}", authentication.getAuthorities());
         logger.info("Resume data: {}", resumeDto);
         
-        // Check if user has ADMIN role - use contains for more flexibility
         boolean isAdmin = authentication.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().contains("ADMIN"));
         
         logger.info("Is user admin: {}", isAdmin);
         
-        // If user is not admin, ensure they are creating a resume for themselves
         if (!isAdmin) {
             Long authenticatedUserId = ((UserDetailsImpl) authentication.getPrincipal()).getId();
             
-            // For regular users, always enforce creating resumes for themselves
             if (resumeDto.getUserId() == null || !authenticatedUserId.equals(resumeDto.getUserId())) {
                 logger.info("Setting resume ownership to authenticated user ID: {}", authenticatedUserId);
                 resumeDto.setUserId(authenticatedUserId);
             }
         } else {
-            // Admin can create resume for any user, but ensure userId is set
             if (resumeDto.getUserId() == null) {
                 Long adminUserId = ((UserDetailsImpl) authentication.getPrincipal()).getId();
                 logger.info("Admin user didn't specify a userId, setting to admin's ID: {}", adminUserId);
@@ -209,7 +197,6 @@ public class ResumeController {
     public ResponseEntity<ResumeDto> updateResume(@PathVariable Long id, @RequestBody ResumeDto resumeDto) {
         logger.debug("Updating resume with ID: {}", id);
         try {
-            // Get current authenticated user
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             if (authentication == null || !authentication.isAuthenticated()) {
                 logger.warn("No authenticated user found when updating resume ID: {}", id);
@@ -219,11 +206,9 @@ public class ResumeController {
             String username = authentication.getName();
             logger.debug("Authenticated user: {} is updating resume ID: {}", username, id);
             
-            // Check if user has ADMIN role
             boolean isAdmin = authentication.getAuthorities().stream()
                     .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
             
-            // Get the resume to check ownership
             Optional<ResumeDto> existingResumeOpt = resumeService.getResumeById(id);
             if (!existingResumeOpt.isPresent()) {
                 logger.debug("Resume not found with ID: {}", id);
@@ -232,7 +217,6 @@ public class ResumeController {
             
             ResumeDto existingResume = existingResumeOpt.get();
             
-            // If user is not admin, check if they are updating their own resume
             if (!isAdmin) {
                 Long authenticatedUserId = ((UserDetailsImpl) authentication.getPrincipal()).getId();
                 if (!authenticatedUserId.equals(existingResume.getUserId())) {
@@ -262,7 +246,6 @@ public class ResumeController {
     public ResponseEntity<Void> deleteResume(@PathVariable Long id) {
         logger.debug("Deleting resume with ID: {}", id);
         try {
-            // Get current authenticated user
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             if (authentication == null || !authentication.isAuthenticated()) {
                 logger.warn("No authenticated user found when deleting resume ID: {}", id);
@@ -272,11 +255,9 @@ public class ResumeController {
             String username = authentication.getName();
             logger.debug("Authenticated user: {} is deleting resume ID: {}", username, id);
             
-            // Check if user has ADMIN role
             boolean isAdmin = authentication.getAuthorities().stream()
                     .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
             
-            // Get the resume to check ownership
             Optional<ResumeDto> existingResumeOpt = resumeService.getResumeById(id);
             if (!existingResumeOpt.isPresent()) {
                 logger.debug("Resume not found with ID: {}", id);
@@ -285,7 +266,6 @@ public class ResumeController {
             
             ResumeDto existingResume = existingResumeOpt.get();
             
-            // If user is not admin, check if they are deleting their own resume
             if (!isAdmin) {
                 Long authenticatedUserId = ((UserDetailsImpl) authentication.getPrincipal()).getId();
                 if (!authenticatedUserId.equals(existingResume.getUserId())) {
@@ -311,7 +291,6 @@ public class ResumeController {
     @PreAuthorize("hasAuthority('ROLE_USER') or hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<byte[]> getResumePdf(@PathVariable Long id) {
         try {
-            // Get current authenticated user
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             if (authentication == null || !authentication.isAuthenticated()) {
                 logger.warn("No authenticated user found when downloading PDF for resume ID: {}", id);
@@ -320,7 +299,6 @@ public class ResumeController {
             
             String username = authentication.getName();
             logger.debug("Authenticated user: {} is downloading PDF for resume ID: {}", username, id);
-              // Check if user has ADMIN role
             boolean isAdmin = authentication.getAuthorities().stream()
                     .anyMatch(a -> a.getAuthority().contains("ADMIN"));
             
@@ -332,7 +310,6 @@ public class ResumeController {
             
             ResumeDto resume = resumeOpt.get();
             
-            // If user is not admin, check if they are accessing their own resume
             if (!isAdmin) {
                 Long authenticatedUserId = ((UserDetailsImpl) authentication.getPrincipal()).getId();
                 if (!authenticatedUserId.equals(resume.getUserId())) {
@@ -357,7 +334,6 @@ public class ResumeController {
         }
     }
     
-    // Debug endpoints
     @GetMapping("/debug/check-permissions/{userId}")
     public ResponseEntity<?> checkPermissions(@PathVariable Long userId) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -429,7 +405,6 @@ public class ResumeController {
         Map<String, Object> result = new HashMap<>();
         
         try {
-            // Get current authenticated user
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             if (authentication == null || !authentication.isAuthenticated()) {
                 result.put("error", "Not authenticated");
@@ -440,17 +415,14 @@ public class ResumeController {
             result.put("username", username);
             result.put("originalResumeData", resumeDto);
             
-            // Check roles
             List<String> roles = authentication.getAuthorities().stream()
                     .map(a -> a.getAuthority())
                     .collect(Collectors.toList());
             result.put("roles", roles);
             
-            // Check if user has ADMIN role
             boolean isAdmin = roles.stream().anyMatch(r -> r.contains("ADMIN"));
             result.put("isAdmin", isAdmin);
             
-            // Get authenticated user ID
             Long authenticatedUserId = null;
             if (authentication.getPrincipal() instanceof UserDetailsImpl) {
                 UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
@@ -461,7 +433,6 @@ public class ResumeController {
                 return new ResponseEntity<>(result, HttpStatus.INTERNAL_SERVER_ERROR);
             }
             
-            // Check and potentially update userId
             Long originalUserId = resumeDto.getUserId();
             result.put("originalUserId", originalUserId);
             
@@ -473,7 +444,6 @@ public class ResumeController {
                 result.put("userIdUpdated", false);
             }
             
-            // Don't actually create the resume, just return debug info
             result.put("message", "This is a debug endpoint that doesn't actually create a resume");
             result.put("resumeDataAfterChecks", resumeDto);
             
@@ -490,7 +460,6 @@ public class ResumeController {
         Map<String, Object> result = new HashMap<>();
         
         try {
-            // Get current authenticated user
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             if (authentication == null || !authentication.isAuthenticated()) {
                 result.put("accessAllowed", false);
@@ -501,17 +470,14 @@ public class ResumeController {
             String username = authentication.getName();
             result.put("username", username);
             
-            // Log all authorities for debugging
             List<String> authorities = authentication.getAuthorities().stream()
                     .map(a -> a.getAuthority())
                     .collect(Collectors.toList());
             result.put("authorities", authorities);
             
-            // Check if user has ADMIN role
             boolean isAdmin = authorities.stream().anyMatch(a -> a.contains("ADMIN"));
             result.put("isAdmin", isAdmin);
             
-            // Get authenticated user ID
             Long authenticatedUserId = null;
             if (authentication.getPrincipal() instanceof UserDetailsImpl) {
                 UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
@@ -523,7 +489,6 @@ public class ResumeController {
                 return new ResponseEntity<>(result, HttpStatus.INTERNAL_SERVER_ERROR);
             }
             
-            // Get the resume
             Optional<ResumeDto> resumeOpt = resumeService.getResumeById(id);
             if (!resumeOpt.isPresent()) {
                 result.put("accessAllowed", false);
@@ -536,7 +501,6 @@ public class ResumeController {
             result.put("resumeTitle", resume.getTitle());
             result.put("resumeIsPublic", resume.getIsPublic());
             
-            // Determine access permissions
             boolean accessAllowed = isAdmin || 
                                    authenticatedUserId.equals(resume.getUserId()) || 
                                    Boolean.TRUE.equals(resume.getIsPublic());

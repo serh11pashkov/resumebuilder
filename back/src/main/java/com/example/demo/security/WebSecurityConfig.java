@@ -1,7 +1,6 @@
 package com.example.demo.security;
 
 import com.example.demo.security.jwt.AuthEntryPointJwt;
-import com.example.demo.security.jwt.AuthTokenFilter;
 import com.example.demo.security.services.UserDetailsServiceImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,7 +50,7 @@ public class WebSecurityConfig {
         return new BCryptPasswordEncoder();
     }    @Bean
     public org.springframework.security.access.hierarchicalroles.RoleHierarchy roleHierarchy() {
-        org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl hierarchy = 
+        org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl hierarchy =
             new org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl();
         hierarchy.setHierarchy("ROLE_ADMIN > ROLE_USER");
         return hierarchy;
